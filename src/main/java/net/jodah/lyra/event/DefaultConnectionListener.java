@@ -1,0 +1,26 @@
+package net.jodah.lyra.event;
+
+import com.rabbitmq.client.Connection;
+
+/**
+ * No-op listener for sub-classing.
+ * 
+ * @author Jonathan Halterman
+ */
+public abstract class DefaultConnectionListener implements ConnectionListener {
+  @Override
+  public void onCreate(Connection connection) {
+  }
+
+  @Override
+  public void onCreateFailure(Throwable failure) {
+  }
+
+  @Override
+  public void onRecovery(Connection connection) {
+  }
+
+  @Override
+  public void onRecoveryFailure(Connection connection, Throwable failure) {
+  }
+}
