@@ -36,8 +36,8 @@ public abstract class AbstractInvocationTest extends AbstractFunctionalTest {
     waiter.await(1000);
   }
 
-  void performThrowableInvocation(ShutdownSignalException e) throws Throwable {
-    performThrowableInvocation(e, null);
+  void performThrowableInvocation(ShutdownSignalException invocationFailure) throws Throwable {
+    performThrowableInvocation(invocationFailure, null);
   }
 
   void performThrowableInvocation(ShutdownSignalException invocationFailure,

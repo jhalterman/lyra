@@ -68,8 +68,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
 
       if (!e.isInitiatedByApplication()) {
         log.info("Connection {} was closed unexpectedly", ConnectionHandler.this);
-        if (options.getConnectionRecoveryPolicy() != null
-            && options.getConnectionRecoveryPolicy().allowsRetries())
+        if (canRecover(e.isHardError()))
           RECOVERY_EXECUTORS.execute(new Runnable() {
             @Override
             public void run() {
@@ -134,6 +133,12 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     return connectionName;
   }
 
+  @Override
+  boolean canRecover(boolean connectionClosed) {
+    return options.getConnectionRecoveryPolicy() != null
+        && options.getConnectionRecoveryPolicy().allowsRetries();
+  }
+
   Channel createChannel(int channelNumber) throws IOException {
     return delegate.createChannel(channelNumber);
   }
@@ -182,8 +187,10 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     createConnection(options.getConnectionRecoveryPolicy(), true);
 
     // Recover channels
-    for (final ChannelHandler channelHandler : channels.values())
-      channelHandler.recoverChannel();
+    if (options.getChannelRecoveryPolicy() != null
+        && options.getChannelRecoveryPolicy().allowsRetries())
+      for (final ChannelHandler channelHandler : channels.values())
+        channelHandler.recoverChannel();
 
     // Migrate shutdown listeners
     synchronized (shutdownListeners) {

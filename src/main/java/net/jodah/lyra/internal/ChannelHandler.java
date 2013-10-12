@@ -71,9 +71,11 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   }
 
   @Override
-  boolean canRecoverChannel() {
-    return options.getChannelRecoveryPolicy() != null
+  boolean canRecover(boolean connectionClosed) {
+    boolean recoverable = options.getChannelRecoveryPolicy() != null
         && options.getChannelRecoveryPolicy().allowsRetries();
+    return connectionClosed ? recoverable && connectionHandler.canRecover(connectionClosed)
+        : recoverable;
   }
 
   @Override

@@ -39,14 +39,13 @@ abstract class RetryableResource {
   }
 
   /**
-   * Calls the {@code callable} with retries, throwing a failure if retries are exhausted. Returns
-   * null if the
+   * Calls the {@code callable} with retries, throwing a failure if retries are exhausted.
    */
   <T> T callWithRetries(ThrowableCallable<T> callable, RetryPolicy retryPolicy, boolean recovery)
       throws Throwable {
     RetryStats retryStats = null;
     if (recovery) {
-      if (retryPolicy == null)
+      if (retryPolicy == null || !retryPolicy.allowsRetries())
         return null;
       retryStats = new RetryStats(retryPolicy);
       retryStats.canRetryForUpdatedStats();
@@ -59,16 +58,18 @@ abstract class RetryableResource {
         ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
         if (sse != null) {
           circuit.open();
-          if (recovery && sse.isHardError())
+          if (!canRecover(sse.isHardError()) || (recovery && sse.isHardError()))
             throw e;
         }
 
-        if (!closed && retryPolicy != null && Exceptions.isFailureRetryable(e, sse)) {
+        if (!closed) {
           try {
             long startTime = System.nanoTime();
+
+            // Recover resource
             if (!recovery && sse != null) {
               if (!sse.isHardError()) {
-                if (!canRecoverChannel() || !recoverChannel())
+                if (!recoverChannel())
                   throw e;
               } else if (retryPolicy.getMaxDuration() == null)
                 circuit.await();
@@ -78,17 +79,20 @@ abstract class RetryableResource {
               }
             }
 
-            if (retryStats == null)
-              retryStats = new RetryStats(retryPolicy);
-            if (retryStats.canRetryForUpdatedStats()) {
-              // Wait for remainder of wait time
-              long remainingWaitTime = retryStats.getWaitTime().toNanos()
-                  - (System.nanoTime() - startTime);
-              if (remainingWaitTime > 0)
-                retryWaiter.await(Duration.nanos(remainingWaitTime));
-              continue;
+            // Continue retries
+            if (retryPolicy != null && retryPolicy.allowsRetries()
+                && Exceptions.isFailureRetryable(e, sse)) {
+              if (retryStats == null)
+                retryStats = new RetryStats(retryPolicy);
+              if (retryStats.canRetryForUpdatedStats()) {
+                long remainingWaitTime = retryStats.getWaitTime().toNanos()
+                    - (System.nanoTime() - startTime);
+                if (remainingWaitTime > 0)
+                  retryWaiter.await(Duration.nanos(remainingWaitTime));
+                continue;
+              }
             }
-          } catch (Exception ignore) {
+          } catch (Throwable ignore) {
           }
         }
 
@@ -97,9 +101,10 @@ abstract class RetryableResource {
     }
   }
 
-  boolean canRecoverChannel() {
-    return false;
-  }
+  /**
+   * Returns whether the resource can be recovered.
+   */
+  abstract boolean canRecover(boolean connectionClosed);
 
   /**
    * Handles common method invocations.

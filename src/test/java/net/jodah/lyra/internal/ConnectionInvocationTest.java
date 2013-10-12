@@ -6,6 +6,9 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
+import net.jodah.lyra.LyraOptions;
+import net.jodah.lyra.retry.RetryPolicies;
+
 import org.testng.annotations.Test;
 
 /**
@@ -15,6 +18,44 @@ import org.testng.annotations.Test;
  */
 @Test(groups = "functional")
 public class ConnectionInvocationTest extends AbstractInvocationTest {
+  /**
+   * Asserts that invocation failures are rethrown when a connection is shutdown and a retry policy
+   * is not set.
+   */
+  public void shouldThrowOnInvocationFailureWithNoRetryPolicy() throws Throwable {
+    options = LyraOptions.forHost("test-host")
+        .withRetryPolicy(RetryPolicies.retryNever())
+        .withRecoveryPolicy(RetryPolicies.retryAlways());
+    performThrowableInvocation(retryableConnectionShutdownSignal());
+    verifyCxnCreations(2);
+    verifyChannelCreations(1, 2);
+    verifyChannelCreations(2, 2);
+    verifyConsumerCreations(1, 1, 2);
+    verifyConsumerCreations(1, 2, 2);
+    verifyConsumerCreations(2, 5, 2);
+    verifyConsumerCreations(2, 6, 2);
+    verifyInvocations(1);
+  }
+
+  /**
+   * Asserts that invocation failures are rethrown when a connection is shutdown and a recovery
+   * policy is not set.
+   */
+  public void shouldThrowOnInvocationFailureWithNoRecoveryPolicy() throws Throwable {
+    options = LyraOptions.forHost("test-host")
+        .withRetryPolicy(RetryPolicies.retryAlways())
+        .withRecoveryPolicy(RetryPolicies.retryNever());
+    performThrowableInvocation(retryableConnectionShutdownSignal());
+    verifyCxnCreations(1);
+    verifyChannelCreations(1, 1);
+    verifyChannelCreations(2, 1);
+    verifyConsumerCreations(1, 1, 1);
+    verifyConsumerCreations(1, 2, 1);
+    verifyConsumerCreations(2, 5, 1);
+    verifyConsumerCreations(2, 6, 1);
+    verifyInvocations(1);
+  }
+
   /**
    * Asserts that a retryable connection closure on a connection invocation results in the
    * connection and channel being recovered and the invocation being retried.
@@ -62,11 +103,11 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
     connectionProxy.createChannel();
   }
 
-  void verifyInvocations(int invocations) throws IOException {
-    verify(connection, times(invocations)).createChannel();
-  }
-
   @Override
   void mockRecovery(Exception e) throws IOException {
+  }
+
+  private void verifyInvocations(int invocations) throws IOException {
+    verify(connection, times(invocations)).createChannel();
   }
 }

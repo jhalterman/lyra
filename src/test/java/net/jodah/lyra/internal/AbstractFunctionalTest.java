@@ -88,13 +88,10 @@ public abstract class AbstractFunctionalTest {
   }
 
   protected void mockConnection() throws IOException {
-    mockConnection(LyraOptions.forHost("test-host")
-        .withRetryPolicy(RetryPolicies.retryAlways().withRetryInterval(Duration.millis(10)))
-        .withRecoveryPolicy(RetryPolicies.retryAlways()));
-  }
-
-  protected void mockConnection(LyraOptions options) throws IOException {
-    this.options = options;
+    if (options == null)
+      options = LyraOptions.forHost("test-host")
+          .withRetryPolicy(RetryPolicies.retryAlways().withRetryInterval(Duration.millis(10)))
+          .withRecoveryPolicy(RetryPolicies.retryAlways());
     if (connectionFactory == null) {
       connectionFactory = mock(ConnectionFactory.class);
       connection = mock(Connection.class);
@@ -105,7 +102,6 @@ public abstract class AbstractFunctionalTest {
     connectionHandler = new ConnectionHandler(connectionFactory, options);
     connectionProxy = (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
         new Class<?>[] { Connection.class }, connectionHandler);
-
     channels = new HashMap<Integer, MockChannel>();
   }
 
