@@ -15,8 +15,6 @@ Dealing with failure is a fact of life in distributed systems. Lyra is a [Rabbit
 
 ## Setup
 
-Until the initial release to Maven Central, you can install Lyra via Maven:
-
 `mvn install`
 
 ## Usage
@@ -47,10 +45,7 @@ Lyra also supports invocation retries when a *retryable* failure occurs while cr
 
 ```java
 LyraOptions options = LyraOptions.forHost("localhost")
-	.withRecoveryPolicy(new RetryPolicy()
-		.withMaxRetries(100)
-		.withInterval(Duration.seconds(1))
-		.withMaxDuration(Duration.minutes(5)))
+	.withRecoveryPolicy(RetryPolicies.retryAlways())
 	.withRetryPolicy(new RetryPolicy()
 		.withBackoff(Duration.seconds(1), Duration.seconds(30))
 		.withMaxDuration(Duration.minutes(10)));
@@ -62,7 +57,18 @@ channel.basicConsume("foo-queue", myConsumer);
 
 Here again we've created a new `Connection` and `Channel`, specifying a recovery policy to use in case any of our resources are *unexpectedly* closed as a result of an invocation failure, and a retry policy that dictates how and when the failed method invocation should be retried. If the `Connections.create()`, `connection.createChannel()`, or `channel.basicConsume()` method invocations fail as the result of a *retryable* error, Lyra will recover any resources that were closed according to the recovery policy and retry the invocation according to the retry policy.
 
-### More on Recovery / Retry Policies
+### Channel Pooling
+
+Lyra supports channel pooling to avoid the expense of creating/closing channels. When enabled, channel pooling allows for generic (non-numbered) channels to be recycled. To enable, simply set a channel pool site:
+
+```java
+LyraOptions.forHost("localhost")
+	.withChannelPoolSize(12);
+```
+
+## Additional Notes
+
+### On Recovery / Retry Policies
 
 Recovery/Retry policies allow you to specify:
 
@@ -73,20 +79,11 @@ Recovery/Retry policies allow you to specify:
 
 Lyra allows for Recovery/Retry policies to be set globally or for individual resource types, as well as for initial connection attempts.
 
-### More on Retryable Failures
+### On Retryable Failures
 
 Lyra will only retry failed invocations that are deemed *retryable*. These include connection errors that are not related to failed authentication, and channel or connection errors that might be the result of temporary network failures.
 
-### Channel Pooling
-
-Lyra supports channel pooling to avoid the expense of creating/closing channels. When enabled, channel pooling allows for generic (non-numbered) channels to be recycled. To enable, simply set a channel pool site:
-
-```java
-LyraOptions.forHost("localhost")
-	.withChannelPoolSize(12);
-```
-
-### Notes on Threading
+### On Threading
 
 When a Connection or Channel are closed as the result of an invocation, the calling thread is blocked according to the recovery policy until the Connection/Channel can be recovered. Connection recovery occurs in a background thread while Channel recovery occurs in the invoking thread. When a Connection is closed involuntarily (not as the result of an invocation), recovery occurs in a background thread.
 
