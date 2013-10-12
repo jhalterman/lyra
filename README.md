@@ -19,8 +19,6 @@ Dealing with failure is a fact of life in distributed systems. Lyra is a [Rabbit
 
 ## Usage
 
-Lyra is built on top of the [Java AMQP client API](http://www.rabbitmq.com/java-client.html), providing *managed* resources such as [Connections](http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Connection.html), [Channels](http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html) and [Consumers](http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Consumer.html).
-
 ### Resource Recovery
 
 The key feature of Lyra is its ability to automatically recover resources such as [Connections](http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Connection.html), [Channels](http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html) and [Consumers](http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Consumer.html) when unexpected failures occur. For example:
@@ -64,6 +62,17 @@ Lyra supports channel pooling to avoid the expense of creating/closing channels.
 ```java
 LyraOptions.forHost("localhost")
 	.withChannelPoolSize(12);
+```
+
+### Event Listeners
+
+Lyra offers listeners for creation and recovery events:
+
+```java
+LyraOptions.forHost("localhost")
+	.withConnectionListeners(myConnectionListener)
+	.withChannelListeners(myChannelListener)
+	.withConsumerListeners(myConsumerListener);
 ```
 
 ## Additional Notes
