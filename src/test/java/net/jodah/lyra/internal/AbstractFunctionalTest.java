@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -59,17 +60,17 @@ public abstract class AbstractFunctionalTest {
   }
 
   static class MockChannel {
-    Channel channel;
-    Channel channelProxy;
+    Channel proxy;
+    Channel delegate;
     Map<Integer, Consumer> consumers = new HashMap<Integer, Consumer>();
 
     protected Consumer mockConsumer(int consumerNumber) throws IOException {
       Consumer consumer = consumers.get(consumerNumber);
       if (consumer == null) {
-        String consumerTag = String.format("%s-%s", channel.getChannelNumber(), consumerNumber);
-        consumer = new MockConsumer(channelProxy, consumerNumber);
-        when(channel.basicConsume(eq("test-queue"), eq(consumer))).thenReturn(consumerTag);
-        channelProxy.basicConsume("test-queue", consumer);
+        String consumerTag = String.format("%s-%s", delegate.getChannelNumber(), consumerNumber);
+        consumer = new MockConsumer(proxy, consumerNumber);
+        when(delegate.basicConsume(eq("test-queue"), eq(consumer))).thenReturn(consumerTag);
+        proxy.basicConsume("test-queue", consumer);
         consumers.put(consumerNumber, consumer);
       }
 
@@ -105,6 +106,18 @@ public abstract class AbstractFunctionalTest {
     channels = new HashMap<Integer, MockChannel>();
   }
 
+  protected MockChannel mockChannel() throws IOException {
+    MockChannel mockChannel = new MockChannel();
+    Channel channel = mock(Channel.class);
+    int channelNumber = new Random().nextInt(1000) + 1000;
+    when(channel.getChannelNumber()).thenReturn(channelNumber);
+    when(channel.toString()).thenReturn("channel-" + channelNumber);
+    when(connection.createChannel()).thenReturn(channel);
+    mockChannel.proxy = connectionProxy.createChannel();
+    mockChannel.delegate = delegateFor(mockChannel.proxy);
+    return mockChannel;
+  }
+
   protected MockChannel mockChannel(int channelNumber) throws IOException {
     MockChannel mockChannel = channels.get(channelNumber);
     if (mockChannel == null) {
@@ -113,8 +126,8 @@ public abstract class AbstractFunctionalTest {
       when(connection.createChannel(eq(channelNumber))).thenReturn(channel);
       when(channel.getChannelNumber()).thenReturn(channelNumber);
       when(channel.toString()).thenReturn("channel-" + channelNumber);
-      mockChannel.channel = channel;
-      mockChannel.channelProxy = connectionProxy.createChannel(channelNumber);
+      mockChannel.proxy = connectionProxy.createChannel(channelNumber);
+      mockChannel.delegate = delegateFor(mockChannel.proxy);
       channels.put(channelNumber, mockChannel);
     }
 
@@ -170,8 +183,12 @@ public abstract class AbstractFunctionalTest {
 
   void verifyConsumerCreations(int channelNumber, int consumerNumber, int expectedInvocations)
       throws IOException {
-    verify(mockChannel(channelNumber).channel, times(expectedInvocations)).basicConsume(
+    verify(mockChannel(channelNumber).delegate, times(expectedInvocations)).basicConsume(
         eq("test-queue"), eq(mockConsumer(channelNumber, consumerNumber)));
+  }
+
+  Channel delegateFor(Channel channelProxy) {
+    return ((ChannelHandler) Proxy.getInvocationHandler(channelProxy)).delegate;
   }
 
   /**

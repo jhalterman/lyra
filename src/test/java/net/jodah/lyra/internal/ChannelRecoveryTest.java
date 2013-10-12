@@ -81,7 +81,7 @@ public class ChannelRecoveryTest extends AbstractRecoveryTest {
     mockConsumer(2, 5);
     mockConsumer(2, 6);
 
-    when(mockChannel(2).channel.basicConsume(eq("test-queue"), eq(mockConsumer(2, 5)))).thenAnswer(
+    when(mockChannel(2).delegate.basicConsume(eq("test-queue"), eq(mockConsumer(2, 5)))).thenAnswer(
         failNTimes(3, e, "test-tag"));
   }
 }

@@ -223,7 +223,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
     mockConsumer(2, 5);
     mockConsumer(2, 6);
 
-    doAnswer(failNTimes(2, e, null)).when(mockChannel(1).channel).basicCancel("foo-tag");
+    doAnswer(failNTimes(2, e, null)).when(mockChannel(1).delegate).basicCancel("foo-tag");
   }
 
   @Override
@@ -233,7 +233,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
 
   @Override
   void performInvocation() throws IOException {
-    mockChannel(1).channelProxy.basicCancel("foo-tag");
+    mockChannel(1).proxy.basicCancel("foo-tag");
   }
 
   private void verifySingleInvocation() throws Throwable {
@@ -248,6 +248,6 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
   }
 
   private void verifyInvocations(int invocations) throws IOException {
-    verify(mockChannel(1).channel, times(invocations)).basicCancel(eq("foo-tag"));
+    verify(mockChannel(1).delegate, times(invocations)).basicCancel(eq("foo-tag"));
   }
 }

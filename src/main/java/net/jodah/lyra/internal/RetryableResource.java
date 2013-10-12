@@ -33,7 +33,7 @@ abstract class RetryableResource {
   final ReentrantCircuit circuit = new ReentrantCircuit();
   final InterruptableWaiter retryWaiter = new InterruptableWaiter();
   final List<ShutdownListener> shutdownListeners = Collections.synchronizedList();
-  private volatile boolean closed;
+  volatile boolean closed;
 
   void afterClosure() {
   }

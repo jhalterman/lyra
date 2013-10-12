@@ -33,7 +33,7 @@ public final class LyraOptions {
   private String name;
   private int prefetchCount;
   private ExecutorService consumerThreadPool;
-  private int channelCacheSize;
+  private int channelPoolSize;
   private RetryPolicy retryPolicy;
   private RetryPolicy recoveryPolicy;
   private RetryPolicy connectRetryPolicy;
@@ -57,8 +57,8 @@ public final class LyraOptions {
     return addresses == null ? new Address[] { new Address(host, port) } : addresses;
   }
 
-  public int getChannelCacheSize() {
-    return channelCacheSize;
+  public int getChannelPoolSize() {
+    return channelPoolSize;
   }
 
   public Collection<ChannelListener> getChannelListeners() {
@@ -125,8 +125,15 @@ public final class LyraOptions {
     return virtualHost;
   }
 
-  public LyraOptions withChannelCacheSize(int channelCacheSize) {
-    this.channelCacheSize = channelCacheSize;
+  /**
+   * Sets the size of the channel pool, enabling channel pooling if {@code channelPoolSize} is > 0.
+   * This allows channels to be pooled internally and recycled as needed.
+   * 
+   * <p>
+   * Default is 0 (channel pooling disabled).
+   */
+  public LyraOptions withChannelPoolSize(int channelPoolSize) {
+    this.channelPoolSize = channelPoolSize;
     return this;
   }
 

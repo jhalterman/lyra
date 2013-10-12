@@ -59,7 +59,7 @@ public class ChannelClosureTest extends AbstractFunctionalTest {
     runInThread(new Runnable() {
       public void run() {
         try {
-          mockChannel(1).channelProxy.basicCancel("foo-tag");
+          mockChannel(1).proxy.basicCancel("foo-tag");
           waiter.fail("Invocation should have thrown an exception");
         } catch (Exception expected) {
           waiter.assertEquals(e, expected);
@@ -73,7 +73,7 @@ public class ChannelClosureTest extends AbstractFunctionalTest {
 
   private void mockInvocation(Exception e) throws IOException {
     mockChannel(1);
-    doThrow(e).when(mockChannel(1).channel).basicCancel("foo-tag");
+    doThrow(e).when(mockChannel(1).delegate).basicCancel("foo-tag");
   }
 
   private void closeChannelAfterDelay() throws Throwable {
@@ -81,7 +81,7 @@ public class ChannelClosureTest extends AbstractFunctionalTest {
       public void run() {
         try {
           Thread.sleep(200);
-          mockChannel(1).channelProxy.close();
+          mockChannel(1).proxy.close();
         } catch (Throwable e) {
         }
       }

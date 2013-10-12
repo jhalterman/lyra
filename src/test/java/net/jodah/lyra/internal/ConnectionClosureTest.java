@@ -44,14 +44,16 @@ public class ConnectionClosureTest extends AbstractFunctionalTest {
         try {
           connectionProxy.createChannel();
           waiter.fail("Invocation should have thrown an exception");
-        } catch (Exception expected) {
-          waiter.assertEquals(e, expected);
+        } catch (Exception actual) {
+          if (!actual.equals(e))
+            actual.printStackTrace();
+          waiter.assertEquals(actual, e);
           waiter.resume();
         }
       }
     });
 
-    waiter.await(100000);
+    waiter.await(10000);
   }
 
   private void mockInvocation(Exception e) throws IOException {

@@ -14,6 +14,7 @@ import net.jodah.lyra.internal.util.Exceptions;
 import net.jodah.lyra.internal.util.Reflection;
 import net.jodah.lyra.internal.util.ThrowableCallable;
 
+import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.ShutdownListener;
@@ -25,23 +26,32 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   private final ConnectionHandler connectionHandler;
   private final LyraOptions options;
+  private final boolean explicitNumber;
   private final Map<String, Invocation> consumerInvocations = new ConcurrentHashMap<String, Invocation>();
-  private Channel proxy;
-  private Channel delegate;
+  Channel proxy;
+  Channel delegate;
 
-  public ChannelHandler(ConnectionHandler connectionHandler, Channel delegate, LyraOptions options) {
+  public ChannelHandler(ConnectionHandler connectionHandler, Channel delegate, LyraOptions options,
+      boolean explicitNumber) {
     this.connectionHandler = connectionHandler;
     this.delegate = delegate;
     this.options = options;
+    this.explicitNumber = explicitNumber;
   }
 
   @Override
   public void afterClosure() {
-    connectionHandler.removeChannel(delegate.getChannelNumber());
+    if (!explicitNumber && connectionHandler.pooledChannels != null
+        && connectionHandler.pooledChannels.size() < options.getChannelPoolSize())
+      connectionHandler.pooledChannels.addFirst(delegate);
+    else
+      connectionHandler.removeChannel(delegate.getChannelNumber());
   }
 
   @Override
   public Object invoke(Object ignored, final Method method, final Object[] args) throws Throwable {
+    if (closed)
+      throw new AlreadyClosedException("Attempt to use closed channel", proxy);
     handleCommonMethods(delegate, method, args);
 
     return callWithRetries(new ThrowableCallable<Object>() {
@@ -84,29 +94,31 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         : new HashMap<String, Invocation>(consumerInvocations);
 
     try {
-      callWithRetries(new ThrowableCallable<Channel>() {
+      delegate = callWithRetries(new ThrowableCallable<Channel>() {
         @Override
         public Channel call() throws Throwable {
           log.info("Recovering {} ", ChannelHandler.this);
-          delegate = connectionHandler.createChannel(delegate.getChannelNumber());
+          Channel channel = !explicitNumber && connectionHandler.pooledChannels != null ? connectionHandler.pooledChannels.pollFirst()
+              : null;
+          if (channel == null)
+            channel = connectionHandler.createChannel(delegate.getChannelNumber());
           recoverConsumers(consumers);
 
           // Migrate shutdown listeners
           synchronized (shutdownListeners) {
             for (ShutdownListener listener : shutdownListeners)
-              delegate.addShutdownListener(listener);
+              channel.addShutdownListener(listener);
           }
 
           circuit.close();
           for (ChannelListener listener : options.getChannelListeners())
             listener.onRecovery(proxy);
-          return delegate;
+          return channel;
         }
       }, options.getChannelRecoveryPolicy(), true);
       return true;
     } catch (Throwable t) {
       ShutdownSignalException sse = Exceptions.extractCause(t, ShutdownSignalException.class);
-      // if (sse == null || !sse.isHardError())
       log.error("Failed to recover {}", this, t);
       for (ChannelListener listener : options.getChannelListeners())
         listener.onRecoveryFailure(proxy, t);
@@ -135,7 +147,6 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           listener.onRecovery(consumer);
       } catch (Exception e) {
         ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
-        // if (sse == null || !sse.isHardError())
         log.error("Failed to recover consumer-{} via {}", entry.getKey(), this, e);
         for (ConsumerListener listener : options.getConsumerListeners())
           listener.onRecoveryFailure(consumer, e);
