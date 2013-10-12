@@ -35,7 +35,7 @@ Channel channel = connection.createChannel();
 channel.basicConsume("foo-queue", myConsumer);
 ```
 
-Here we've created a new `Connection` and `Channel`, specifying a recovery policy to use in case any of our resources are *unexpectedly* closed. If the consumer is cancelled, the channel is closed, or the connection is closed, Lyra will automatically attempt to recover the closed resources according to the given recovery policy.
+Here we've created a new `Connection` and `Channel`, specifying a recovery policy to use in case any of our resources are *unexpectedly* closed. If the consumer is unexpectedly cancelled, the channel is closed, or the connection is closed, Lyra will automatically attempt to recover the closed resources according to the given recovery policy.
 
 #### Invocation Retries
 
