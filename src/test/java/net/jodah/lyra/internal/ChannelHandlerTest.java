@@ -37,4 +37,14 @@ public class ChannelHandlerTest extends AbstractFunctionalTest {
     } catch (AlreadyClosedException expected) {
     }
   }
+  
+  public void shouldHandleCancelWithNullArgs() throws Throwable {
+    mockConnection();
+    mockChannel().proxy.basicCancel(null);
+  }
+  
+  public void shouldHandleAddListenerWithNullArgs() throws Throwable {
+    mockConnection();
+    mockChannel().proxy.addConfirmListener(null);
+  }
 }

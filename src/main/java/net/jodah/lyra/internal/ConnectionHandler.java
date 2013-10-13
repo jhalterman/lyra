@@ -102,7 +102,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       return callWithRetries(new ThrowableCallable<Object>() {
         @Override
         public Object call() throws Throwable {
-          if (method.getName().equals(CREATE_CHANNEL_METHOD_NAME)) {
+          if (CREATE_CHANNEL_METHOD_NAME.equals(method.getName())) {
             Channel channel = pooledChannels != null && (args == null || args.length == 0) ? pooledChannels.pollFirst()
                 : null;
             if (channel == null)
@@ -111,7 +111,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
                 options, args != null && args.length > 0);
             Channel channelProxy = (Channel) Proxy.newProxyInstance(
                 Connection.class.getClassLoader(), CHANNEL_TYPES, channelHandler);
-            channelHandler.setProxy(channelProxy);
+            channelHandler.proxy = channelProxy;
             channels.put(Integer.valueOf(channel.getChannelNumber()).toString(), channelHandler);
             log.info("Created {}", channelHandler);
             for (ChannelListener listener : options.getChannelListeners())
@@ -123,7 +123,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
         }
       }, options.getConnectionRetryPolicy(), false);
     } catch (Throwable t) {
-      if (method.getName().equals(CREATE_CHANNEL_METHOD_NAME)) {
+      if (CREATE_CHANNEL_METHOD_NAME.equals(method.getName())) {
         log.error("Failed to create channel on {}", connectionName, t);
         for (ChannelListener listener : options.getChannelListeners())
           listener.onCreateFailure(t);

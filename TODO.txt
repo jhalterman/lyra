@@ -1,3 +1,4 @@
 migrate shutdownlisteners and other notifiers
 override which AMQP response codes are retryable/recoverable
+when retries are not enabled and an invocation fails, the caller should not have to wait for recovery.
 nice messages that describe what was and wasn't successfully recovered at the end of the entire recovery run, such as if the connection was recovered but a channel and 2 consumers were not.

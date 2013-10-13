@@ -110,7 +110,7 @@ abstract class RetryableResource {
    * Handles common method invocations.
    */
   boolean handleCommonMethods(Object delegate, Method method, Object[] args) throws Throwable {
-    if (method.getName().equals(ABORT_METHOD_NAME) || method.getName().equals(CLOSE_METHOD_NAME)) {
+    if (ABORT_METHOD_NAME.equals(method.getName()) || CLOSE_METHOD_NAME.equals(method.getName())) {
       try {
         Reflection.invoke(delegate, method, args);
         return true;
@@ -120,9 +120,9 @@ abstract class RetryableResource {
         circuit.interruptWaiters();
         retryWaiter.interruptWaiters();
       }
-    } else if (method.getName().equals(ADD_SHUTDOWN_LISTENER_METHOD_NAME) && args[0] != null)
+    } else if (ADD_SHUTDOWN_LISTENER_METHOD_NAME.equals(method.getName()) && args[0] != null)
       shutdownListeners.add((ShutdownListener) args[0]);
-    else if (method.getName().equals(REMOVE_SHUTDOWN_LISTENER_METHOD_NAME) && args[0] != null)
+    else if (REMOVE_SHUTDOWN_LISTENER_METHOD_NAME.equals(method.getName()) && args[0] != null)
       shutdownListeners.remove((ShutdownListener) args[0]);
     return false;
   }

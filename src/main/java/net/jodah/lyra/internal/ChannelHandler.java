@@ -1,33 +1,50 @@
 package net.jodah.lyra.internal;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import net.jodah.lyra.LyraOptions;
 import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConsumerListener;
+import net.jodah.lyra.internal.util.Collections;
 import net.jodah.lyra.internal.util.Exceptions;
 import net.jodah.lyra.internal.util.Reflection;
 import net.jodah.lyra.internal.util.ThrowableCallable;
 
 import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConfirmListener;
 import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.FlowListener;
+import com.rabbitmq.client.ReturnListener;
 import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 
 public class ChannelHandler extends RetryableResource implements InvocationHandler {
   private static final String BASIC_CONSUME_METHOD_NAME = "basicConsume";
   private static final String BASIC_CANCEL_METHOD_NAME = "basicCancel";
+  private static final String ADD_CONFIRM_LISTENER_METHOD_NAME = "addConfirmListener";
+  private static final String ADD_FLOW_LISTENER_METHOD_NAME = "addFlowListener";
+  private static final String ADD_RETURN_LISTENER_METHOD_NAME = "addReturnListener";
+  private static final String REMOVE_CONFIRM_LISTENER_METHOD_NAME = "removeConfirmListener";
+  private static final String REMOVE_FLOW_LISTENER_METHOD_NAME = "removeFlowListener";
+  private static final String REMOVE_RETURN_LISTENER_METHOD_NAME = "removeReturnListener";
+  private static final String CLEAR_CONFIRM_LISTENER_METHOD_NAME = "clearConfirmListeners";
+  private static final String CLEAR_FLOW_LISTENER_METHOD_NAME = "clearFlowListeners";
+  private static final String CLEAR_RETURN_LISTENER_METHOD_NAME = "clearReturnListeners";
 
   private final ConnectionHandler connectionHandler;
   private final LyraOptions options;
   private final boolean explicitNumber;
-  private final Map<String, Invocation> consumerInvocations = new ConcurrentHashMap<String, Invocation>();
+  private final Map<String, Invocation> consumerInvocations = Collections.synchronizedMap();
+  private List<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();
+  private List<FlowListener> flowListeners = new CopyOnWriteArrayList<FlowListener>();
+  private List<ReturnListener> returnListeners = new CopyOnWriteArrayList<ReturnListener>();
   Channel proxy;
   Channel delegate;
 
@@ -40,15 +57,6 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   }
 
   @Override
-  public void afterClosure() {
-    if (!explicitNumber && connectionHandler.pooledChannels != null
-        && connectionHandler.pooledChannels.size() < options.getChannelPoolSize())
-      connectionHandler.pooledChannels.addFirst(delegate);
-    else
-      connectionHandler.removeChannel(delegate.getChannelNumber());
-  }
-
-  @Override
   public Object invoke(Object ignored, final Method method, final Object[] args) throws Throwable {
     if (closed)
       throw new AlreadyClosedException("Attempt to use closed channel", proxy);
@@ -57,18 +65,35 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     return callWithRetries(new ThrowableCallable<Object>() {
       @Override
       public Object call() throws Throwable {
-        if (method.getName().equals(BASIC_CANCEL_METHOD_NAME) && args[0] != null)
+        if (BASIC_CANCEL_METHOD_NAME.equals(method.getName()) && args[0] != null)
           consumerInvocations.remove((String) args[0]);
 
         Object result = Reflection.invoke(delegate, method, args);
 
-        if (method.getName().equals(BASIC_CONSUME_METHOD_NAME)) {
+        if (BASIC_CONSUME_METHOD_NAME.equals(method.getName())) {
           // Replace actual consumerTag
           if (args.length > 3)
             args[2] = result;
           consumerInvocations.put((String) result, new Invocation(method, args));
           log.info("Created consumer-{} of {} via {}", result, args[0], ChannelHandler.this);
-        }
+        } else if (ADD_CONFIRM_LISTENER_METHOD_NAME.equals(method.getName()))
+          confirmListeners.add((ConfirmListener) args[0]);
+        else if (ADD_FLOW_LISTENER_METHOD_NAME.equals(method.getName()))
+          flowListeners.add((FlowListener) args[0]);
+        else if (ADD_RETURN_LISTENER_METHOD_NAME.equals(method.getName()))
+          returnListeners.add((ReturnListener) args[0]);
+        else if (REMOVE_CONFIRM_LISTENER_METHOD_NAME.equals(method.getName()))
+          confirmListeners.remove((ConfirmListener) args[0]);
+        else if (REMOVE_FLOW_LISTENER_METHOD_NAME.equals(method.getName()))
+          flowListeners.remove((FlowListener) args[0]);
+        else if (REMOVE_RETURN_LISTENER_METHOD_NAME.equals(method.getName()))
+          returnListeners.remove((ReturnListener) args[0]);
+        else if (CLEAR_CONFIRM_LISTENER_METHOD_NAME.equals(method.getName()))
+          confirmListeners.clear();
+        else if (CLEAR_FLOW_LISTENER_METHOD_NAME.equals(method.getName()))
+          flowListeners.clear();
+        else if (CLEAR_RETURN_LISTENER_METHOD_NAME.equals(method.getName()))
+          returnListeners.clear();
 
         return result;
       }
@@ -81,6 +106,30 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   }
 
   @Override
+  void afterClosure() {
+    if (!explicitNumber && connectionHandler.pooledChannels != null
+        && connectionHandler.pooledChannels.size() < options.getChannelPoolSize()) {
+      synchronized (consumerInvocations) {
+        for (String consumerTag : consumerInvocations.keySet())
+          try {
+            delegate.basicCancel(consumerTag);
+          } catch (IOException ignore) {
+          }
+      }
+      delegate.setDefaultConsumer(null);
+      synchronized (shutdownListeners) {
+        for (ShutdownListener listener : shutdownListeners)
+          delegate.removeShutdownListener(listener);
+      }
+      delegate.clearConfirmListeners();
+      delegate.clearFlowListeners();
+      delegate.clearReturnListeners();
+      connectionHandler.pooledChannels.addFirst(delegate);
+    } else
+      connectionHandler.removeChannel(delegate.getChannelNumber());
+  }
+
+  @Override
   boolean canRecover(boolean connectionClosed) {
     boolean recoverable = options.getChannelRecoveryPolicy() != null
         && options.getChannelRecoveryPolicy().allowsRetries();
@@ -90,7 +139,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   @Override
   boolean recoverChannel() throws Throwable {
-    final Map<String, Invocation> consumers = consumerInvocations.isEmpty() ? Collections.<String, Invocation>emptyMap()
+    final Map<String, Invocation> consumers = consumerInvocations.isEmpty() ? null
         : new HashMap<String, Invocation>(consumerInvocations);
 
     try {
@@ -104,11 +153,17 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
             channel = connectionHandler.createChannel(delegate.getChannelNumber());
           recoverConsumers(consumers);
 
-          // Migrate shutdown listeners
+          channel.setDefaultConsumer(delegate.getDefaultConsumer());
           synchronized (shutdownListeners) {
             for (ShutdownListener listener : shutdownListeners)
               channel.addShutdownListener(listener);
           }
+          for (ConfirmListener listener : confirmListeners)
+            channel.addConfirmListener(listener);
+          for (FlowListener listener : flowListeners)
+            channel.addFlowListener(listener);
+          for (ReturnListener listener : returnListeners)
+            channel.addReturnListener(listener);
 
           circuit.close();
           for (ChannelListener listener : options.getChannelListeners())
@@ -128,34 +183,31 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     }
   }
 
-  void setProxy(Channel proxy) {
-    this.proxy = proxy;
-  }
-
   /**
    * Recovers consumers. If a consumer recovery fails due to a channel closure, then we will not
    * attempt to recover that consumer again.
    */
   private void recoverConsumers(Map<String, Invocation> consumers) throws Throwable {
-    for (final Map.Entry<String, Invocation> entry : consumers.entrySet()) {
-      Consumer consumer = (Consumer) entry.getValue().args[entry.getValue().args.length - 1];
+    if (consumers != null)
+      for (final Map.Entry<String, Invocation> entry : consumers.entrySet()) {
+        Consumer consumer = (Consumer) entry.getValue().args[entry.getValue().args.length - 1];
 
-      try {
-        log.info("Recovering consumer-{} via {}", entry.getKey(), this);
-        Reflection.invoke(delegate, entry.getValue().method, entry.getValue().args);
-        for (ConsumerListener listener : options.getConsumerListeners())
-          listener.onRecovery(consumer);
-      } catch (Exception e) {
-        ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
-        log.error("Failed to recover consumer-{} via {}", entry.getKey(), this, e);
-        for (ConsumerListener listener : options.getConsumerListeners())
-          listener.onRecoveryFailure(consumer, e);
-        if (sse != null) {
-          if (!sse.isHardError())
-            consumers.remove(entry.getKey());
-          throw e;
+        try {
+          log.info("Recovering consumer-{} via {}", entry.getKey(), this);
+          Reflection.invoke(delegate, entry.getValue().method, entry.getValue().args);
+          for (ConsumerListener listener : options.getConsumerListeners())
+            listener.onRecovery(consumer);
+        } catch (Exception e) {
+          ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
+          log.error("Failed to recover consumer-{} via {}", entry.getKey(), this, e);
+          for (ConsumerListener listener : options.getConsumerListeners())
+            listener.onRecoveryFailure(consumer, e);
+          if (sse != null) {
+            if (!sse.isHardError())
+              consumers.remove(entry.getKey());
+            throw e;
+          }
         }
       }
-    }
   }
 }

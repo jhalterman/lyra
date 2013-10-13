@@ -11,7 +11,10 @@ import java.io.IOException;
 import net.jodah.lyra.LyraOptions;
 import net.jodah.lyra.retry.RetryPolicies;
 
+import org.jodah.concurrentunit.Waiter;
 import org.testng.annotations.Test;
+
+import com.rabbitmq.client.ShutdownSignalException;
 
 /**
  * Tests failures that occur as the result of a channel invocation.
@@ -214,6 +217,39 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
 
   public void retryableChannelClosureShouldInterruptWaiters() throws Throwable {
     performThrowableInvocation(nonRetryableConnectionShutdownSignal());
+  }
+
+  public void shouldHandleConcurrentRetryableFailures() throws Throwable {
+    // performInvocation(retryableChannelShutdownSignal());
+    ShutdownSignalException invocationFailure = retryableChannelShutdownSignal();
+    mockConnection();
+    mockInvocation(invocationFailure);
+    // if (recoveryFailure != null)
+    // mockRecovery(recoveryFailure);
+
+    final Waiter waiter = new Waiter();
+    for (int i = 0; i < 2; i++)
+      runInThread(new Runnable() {
+        public void run() {
+          try {
+            performInvocation();
+            waiter.resume();
+          } catch (Throwable t) {
+            waiter.fail(t);
+          }
+        }
+      });
+    
+    waiter.await(1000000, 2);
+
+//    verifyCxnCreations(1);
+//    verifyChannelCreations(1, 3);
+//    verifyChannelCreations(2, 1);
+//    verifyConsumerCreations(1, 1, 3);
+//    verifyConsumerCreations(1, 2, 3);
+//    verifyConsumerCreations(2, 5, 1);
+//    verifyConsumerCreations(2, 6, 1);
+//    verifyInvocations(3);
   }
 
   @Override
