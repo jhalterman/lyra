@@ -33,7 +33,6 @@ public final class LyraOptions {
   private String name;
   private int prefetchCount;
   private ExecutorService consumerThreadPool;
-  private int channelPoolSize;
   private RetryPolicy retryPolicy;
   private RetryPolicy recoveryPolicy;
   private RetryPolicy connectRetryPolicy;
@@ -55,10 +54,6 @@ public final class LyraOptions {
 
   public Address[] getAddresses() {
     return addresses == null ? new Address[] { new Address(host, port) } : addresses;
-  }
-
-  public int getChannelPoolSize() {
-    return channelPoolSize;
   }
 
   public Collection<ChannelListener> getChannelListeners() {
@@ -123,18 +118,6 @@ public final class LyraOptions {
 
   public String getVirtualHost() {
     return virtualHost;
-  }
-
-  /**
-   * Sets the size of the channel pool, enabling channel pooling if {@code channelPoolSize} is > 0.
-   * This allows channels to be pooled internally and recycled as needed.
-   * 
-   * <p>
-   * Default is 0 (channel pooling disabled).
-   */
-  public LyraOptions withChannelPoolSize(int channelPoolSize) {
-    this.channelPoolSize = channelPoolSize;
-    return this;
   }
 
   /**
@@ -279,9 +262,8 @@ public final class LyraOptions {
   /**
    * Sets the global RetryPolicy for the recovery of Connections/Channels/Consumers after an
    * unexpected Connection/Channel closure. Can be overridden with specific policies via
-   * {@link #withConnectionRecoveryPolicy(RetryPolicy)},
-   * {@link #withChannelRecoveryPolicy(RetryPolicy)}, and
-   * {@link #withConsumerRecoveryPolicy(RetryPolicy)}.
+   * {@link #withConnectionRecoveryPolicy(RetryPolicy)} and
+   * {@link #withChannelRecoveryPolicy(RetryPolicy)}.
    */
   public LyraOptions withRecoveryPolicy(RetryPolicy retryPolicy) {
     this.recoveryPolicy = Assert.notNull(retryPolicy, "retryPolicy");

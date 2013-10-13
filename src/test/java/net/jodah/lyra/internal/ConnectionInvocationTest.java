@@ -3,11 +3,13 @@ package net.jodah.lyra.internal;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertTrue;
 
 import java.io.IOException;
 
 import net.jodah.lyra.LyraOptions;
 import net.jodah.lyra.retry.RetryPolicies;
+import net.jodah.lyra.util.Duration;
 
 import org.testng.annotations.Test;
 
@@ -19,14 +21,18 @@ import org.testng.annotations.Test;
 @Test(groups = "functional")
 public class ConnectionInvocationTest extends AbstractInvocationTest {
   /**
-   * Asserts that invocation failures are rethrown when a connection is shutdown and a retry policy
-   * is not set.
+   * Asserts that a failed invocation results in the failure being rethrown immediately if retries
+   * are not configured while recovery takes place in the background.
    */
-  public void shouldThrowOnInvocationFailureWithNoRetryPolicy() throws Throwable {
+  public void shouldThrowImmediatelyOnInvocationFailureWithNoRetryPolicy() throws Throwable {
     options = LyraOptions.forHost("test-host")
         .withRetryPolicy(RetryPolicies.retryNever())
         .withRecoveryPolicy(RetryPolicies.retryAlways());
+    // Perform failing invocation
     performThrowableInvocation(retryableConnectionShutdownSignal());
+
+    // Wait for connection to be recovered in background thread
+    assertTrue(connectionHandler.circuit.await(Duration.secs(1)));
     verifyCxnCreations(2);
     verifyChannelCreations(1, 2);
     verifyChannelCreations(2, 2);

@@ -5,13 +5,18 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.testng.Assert.assertTrue;
 
 import java.io.IOException;
 
 import net.jodah.lyra.LyraOptions;
 import net.jodah.lyra.retry.RetryPolicies;
+import net.jodah.lyra.util.Duration;
 
+import org.jodah.concurrentunit.Waiter;
 import org.testng.annotations.Test;
+
+import com.rabbitmq.client.AlreadyClosedException;
 
 /**
  * Tests failures that occur as the result of a channel invocation.
@@ -21,14 +26,18 @@ import org.testng.annotations.Test;
 @Test(groups = "functional")
 public class ChannelInvocationTest extends AbstractInvocationTest {
   /**
-   * Asserts that invocation failures are rethrown when a channel is shutdown and a retry policy is
-   * not set, but the channel should still be recovered.
+   * Asserts that a failed invocation results in the failure being rethrown immediately if retries
+   * are not configured while recovery takes place in the background.
    */
   public void shouldThrowOnChannelShutdownWithNoRetryPolicy() throws Throwable {
     options = LyraOptions.forHost("test-host")
         .withRetryPolicy(RetryPolicies.retryNever())
         .withRecoveryPolicy(RetryPolicies.retryAlways());
+    // Perform failing invocation
     performThrowableInvocation(retryableChannelShutdownSignal());
+
+    // Wait for channel to be recovered in background thread
+    assertTrue(mockChannel(1).channelHandler.circuit.await(Duration.secs(1)));
     verifyCxnCreations(1);
     verifyChannelCreations(1, 2);
     verifyChannelCreations(2, 1);
@@ -60,6 +69,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
         .withRetryPolicy(RetryPolicies.retryNever())
         .withRecoveryPolicy(RetryPolicies.retryAlways());
     performThrowableInvocation(retryableConnectionShutdownSignal());
+    assertTrue(mockChannel(1).channelHandler.circuit.await(Duration.secs(1)));
     verifyCxnCreations(2);
     verifyChannelCreations(1, 2);
     verifyChannelCreations(2, 2);
@@ -212,7 +222,48 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
     verifyInvocations(1);
   }
 
-  public void retryableChannelClosureShouldInterruptWaiters() throws Throwable {
+  /**
+   * Asserts that concurrent failed invocations result in recovery being performed serially.
+   */
+  @Test(groups = "problematic")
+  public void shouldHandleConcurrentRetryableFailures() throws Throwable {
+    mockConnection();
+    mockConsumer(1, 1);
+    mockConsumer(1, 2);
+    mockConsumer(2, 5);
+    mockConsumer(2, 6);
+
+    doAnswer(failNTimes(4, new AlreadyClosedException("foo", "bar"), null)).when(
+        mockChannel(1).delegate).basicCancel("foo-tag");
+
+    final Waiter waiter = new Waiter();
+    for (int i = 0; i < 2; i++)
+      runInThread(new Runnable() {
+        public void run() {
+          try {
+            performInvocation();
+            waiter.resume();
+          } catch (Throwable t) {
+            waiter.fail(t);
+          }
+        }
+      });
+
+    waiter.await(2000, 2);
+
+    // Even though both threads will fail twice, only one thread will perform recovery
+    verifyCxnCreations(1);
+    verifyChannelCreations(1, 3);
+    verifyChannelCreations(2, 1);
+    verifyConsumerCreations(1, 1, 3);
+    verifyConsumerCreations(1, 2, 3);
+    verifyConsumerCreations(2, 5, 1);
+    verifyConsumerCreations(2, 6, 1);
+    // Initial failure plus two retries for each thread
+    verifyInvocations(6);
+  }
+
+  public void shouldInterruptWaitersOnRetryableClosure() throws Throwable {
     performThrowableInvocation(nonRetryableConnectionShutdownSignal());
   }
 

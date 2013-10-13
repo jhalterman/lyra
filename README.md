@@ -10,7 +10,6 @@ Dealing with failure is a fact of life in distributed systems. Lyra is a [Rabbit
 
 * Automatic resource recovery
 * Automatic invocation retries
-* Channel pooling
 * Event listeners
 
 ## Setup
@@ -55,18 +54,9 @@ channel.basicConsume("foo-queue", myConsumer);
 
 Here again we've created a new `Connection` and `Channel`, specifying a recovery policy to use in case any of our resources are *unexpectedly* closed as a result of an invocation failure, and a retry policy that dictates how and when the failed method invocation should be retried. If the `Connections.create()`, `connection.createChannel()`, or `channel.basicConsume()` method invocations fail as the result of a *retryable* error, Lyra will recover any resources that were closed according to the recovery policy and retry the invocation according to the retry policy.
 
-#### Channel Pooling
-
-Lyra supports channel pooling to avoid the expense of creating/closing channels. When enabled, channel pooling allows for generic (non-numbered) channels to be recycled. To enable, simply set a channel pool site:
-
-```java
-LyraOptions.forHost("localhost")
-	.withChannelPoolSize(12);
-```
-
 #### Event Listeners
 
-Lyra offers listeners for creation and recovery events:
+Lyra offers [listeners](http://jodah.net/lyra/javadoc/net/jodah/lyra/event/package-summary.html) for creation and recovery events:
 
 ```java
 LyraOptions.forHost("localhost")
@@ -79,14 +69,14 @@ LyraOptions.forHost("localhost")
 
 #### On Recovery / Retry Policies
 
-Recovery/Retry policies allow you to specify:
+[Recovery / Retry policies](http://jodah.net/lyra/javadoc/net/jodah/lyra/retry/RetryPolicy.html) allow you to specify:
 
 * The maximum number of retry attempts to perform
 * The maxmimum duration that retries should be performed for
 * The standard interval between retry attempts
 * The maximum interval between retries to exponentially backoff to
 
-Lyra allows for Recovery/Retry policies to be set globally or for individual resource types, as well as for initial connection attempts.
+Lyra allows for Recovery / Retry policies to be set globally or for individual resource types, as well as for initial connection attempts.
 
 #### On Retryable Failures
 
@@ -94,7 +84,16 @@ Lyra will only retry failed invocations that are deemed *retryable*. These inclu
 
 #### On Threading
 
-When a Connection or Channel are closed as the result of an invocation, the calling thread is blocked according to the recovery policy until the Connection/Channel can be recovered. Connection recovery occurs in a background thread while Channel recovery occurs in the invoking thread. When a Connection is closed involuntarily (not as the result of an invocation), recovery occurs in a background thread.
+When a Connection or Channel are closed as the result of an invocation:
+
+* If recovery and retry policies are configured the calling thread will block until the Connection/Channel is recovered and the retry can be performed.
+* If a retry policy is not configured the failure is immediately rethrown. Recovery will still take place in a background thread if a recovery policy is configured.
+
+When a Connection or Channel are closed involuntarily (not as the result of an invocation), recovery occurs in a background thread if a recovery policy is configured.
+
+## Docs
+
+JavaDocs are available [here](https://jhalterman.github.com/sarge/javadoc).
 
 ## License
 

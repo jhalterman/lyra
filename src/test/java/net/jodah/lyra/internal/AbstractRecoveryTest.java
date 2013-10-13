@@ -27,7 +27,7 @@ public abstract class AbstractRecoveryTest extends AbstractFunctionalTest {
 
     mockRecovery(e);
     callShutdownListener(retryableConnectionShutdownSignal());
-    waiter.await(0, expectedShutdownListenerCalls);
+    waiter.await(1000, expectedShutdownListenerCalls);
     Thread.sleep(100);
   }
 

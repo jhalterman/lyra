@@ -25,6 +25,7 @@ import org.testng.annotations.BeforeMethod;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Address;
+import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Command;
 import com.rabbitmq.client.Connection;
@@ -62,6 +63,7 @@ public abstract class AbstractFunctionalTest {
   static class MockChannel {
     Channel proxy;
     Channel delegate;
+    ChannelHandler channelHandler;
     Map<Integer, Consumer> consumers = new HashMap<Integer, Consumer>();
 
     protected Consumer mockConsumer(int consumerNumber) throws IOException {
@@ -114,7 +116,8 @@ public abstract class AbstractFunctionalTest {
     when(channel.toString()).thenReturn("channel-" + channelNumber);
     when(connection.createChannel()).thenReturn(channel);
     mockChannel.proxy = connectionProxy.createChannel();
-    mockChannel.delegate = delegateFor(mockChannel.proxy);
+    mockChannel.channelHandler = (ChannelHandler) Proxy.getInvocationHandler(mockChannel.proxy);
+    mockChannel.delegate = mockChannel.channelHandler.delegate;
     return mockChannel;
   }
 
@@ -127,7 +130,8 @@ public abstract class AbstractFunctionalTest {
       when(channel.getChannelNumber()).thenReturn(channelNumber);
       when(channel.toString()).thenReturn("channel-" + channelNumber);
       mockChannel.proxy = connectionProxy.createChannel(channelNumber);
-      mockChannel.delegate = delegateFor(mockChannel.proxy);
+      mockChannel.channelHandler = (ChannelHandler) Proxy.getInvocationHandler(mockChannel.proxy);
+      mockChannel.delegate = mockChannel.channelHandler.delegate;
       channels.put(channelNumber, mockChannel);
     }
 
@@ -192,24 +196,22 @@ public abstract class AbstractFunctionalTest {
   }
 
   /**
-   * Returns an answer that fails n times, throwing t for the first n invocations and returning
-   * {@code returnValue} thereafter. Prior to throwing t, the connection handler's shutdown listener
-   * is completed if t is a connection shutdown signal.
+   * Returns an answer that fails n times for each thread, throwing t for the first n invocations
+   * and returning {@code returnValue} thereafter. Prior to throwing t, the connection handler's
+   * shutdown listener is completed if t is a connection shutdown signal.
    */
   protected <T> Answer<T> failNTimes(final int n, final Throwable t, final T returnValue) {
     return new Answer<T>() {
-      final AtomicInteger failures = new AtomicInteger();
+      AtomicInteger failures = new AtomicInteger();
 
       @Override
       public T answer(InvocationOnMock invocation) throws Throwable {
-        if (failures.getAndIncrement() == n) {
-          failures.set(0);
+        if (failures.getAndIncrement() >= n)
           return returnValue;
-        }
 
         if (t instanceof ShutdownSignalException)
           callShutdownListener((ShutdownSignalException) t);
-        if (t instanceof ShutdownSignalException)
+        if (t instanceof ShutdownSignalException && !(t instanceof AlreadyClosedException))
           throw new IOException(t);
         else
           throw t;

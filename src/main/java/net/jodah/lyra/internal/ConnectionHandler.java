@@ -4,19 +4,17 @@ import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Deque;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.jodah.lyra.LyraOptions;
 import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConnectionListener;
 import net.jodah.lyra.internal.util.Reflection;
-import net.jodah.lyra.internal.util.ThrowableCallable;
 import net.jodah.lyra.internal.util.concurrent.NamedThreadFactory;
 import net.jodah.lyra.retry.RetryPolicy;
 
@@ -32,17 +30,15 @@ import com.rabbitmq.client.ShutdownSignalException;
  * @author Jonathan Halterman
  */
 public class ConnectionHandler extends RetryableResource implements InvocationHandler {
-  private static final String CREATE_CHANNEL_METHOD_NAME = "createChannel";
   private static final Class<?>[] CHANNEL_TYPES = { Channel.class };
   private static final AtomicInteger CONNECTION_COUNTER = new AtomicInteger();
-  private static final ExecutorService RECOVERY_EXECUTORS = Executors.newCachedThreadPool(new NamedThreadFactory(
+  static final ExecutorService RECOVERY_EXECUTORS = Executors.newCachedThreadPool(new NamedThreadFactory(
       "recovery-%s"));
 
   private final ConnectionFactory connectionFactory;
   private final LyraOptions options;
   private final String connectionName;
   private final Map<String, ChannelHandler> channels = new ConcurrentHashMap<String, ChannelHandler>();
-  final Deque<Channel> pooledChannels;
   private Connection proxy;
   private Connection delegate;
 
@@ -52,7 +48,6 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     this.options = options;
     this.connectionName = options.getName() == null ? String.format("cxn-%s",
         CONNECTION_COUNTER.incrementAndGet()) : options.getName();
-    pooledChannels = options.getChannelPoolSize() > 0 ? new LinkedBlockingDeque<Channel>() : null;
 
     createConnection();
     ShutdownListener listener = new ConnectionShutdownListener();
@@ -67,8 +62,6 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     @Override
     public void shutdownCompleted(ShutdownSignalException e) {
       circuit.open();
-      if (pooledChannels != null)
-        pooledChannels.clear();
       for (ChannelHandler channelHandler : channels.values())
         channelHandler.circuit.open();
 
@@ -99,19 +92,16 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     handleCommonMethods(delegate, method, args);
 
     try {
-      return callWithRetries(new ThrowableCallable<Object>() {
+      return callWithRetries(new Callable<Object>() {
         @Override
-        public Object call() throws Throwable {
-          if (method.getName().equals(CREATE_CHANNEL_METHOD_NAME)) {
-            Channel channel = pooledChannels != null && (args == null || args.length == 0) ? pooledChannels.pollFirst()
-                : null;
-            if (channel == null)
-              channel = (Channel) Reflection.invoke(delegate, method, args);
+        public Object call() throws Exception {
+          if ("createChannel".equals(method.getName())) {
+            Channel channel = (Channel) Reflection.invoke(delegate, method, args);
             ChannelHandler channelHandler = new ChannelHandler(ConnectionHandler.this, channel,
-                options, args != null && args.length > 0);
+                options);
             Channel channelProxy = (Channel) Proxy.newProxyInstance(
                 Connection.class.getClassLoader(), CHANNEL_TYPES, channelHandler);
-            channelHandler.setProxy(channelProxy);
+            channelHandler.proxy = channelProxy;
             channels.put(Integer.valueOf(channel.getChannelNumber()).toString(), channelHandler);
             log.info("Created {}", channelHandler);
             for (ChannelListener listener : options.getChannelListeners())
@@ -123,7 +113,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
         }
       }, options.getConnectionRetryPolicy(), false);
     } catch (Throwable t) {
-      if (method.getName().equals(CREATE_CHANNEL_METHOD_NAME)) {
+      if ("createChannel".equals(method.getName())) {
         log.error("Failed to create channel on {}", connectionName, t);
         for (ChannelListener listener : options.getChannelListeners())
           listener.onCreateFailure(t);
@@ -172,7 +162,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
 
   private void createConnection(RetryPolicy retryPolicy, final boolean recovery) throws IOException {
     try {
-      delegate = callWithRetries(new ThrowableCallable<Connection>() {
+      delegate = callWithRetries(new Callable<Connection>() {
         @Override
         public Connection call() throws IOException {
           log.info("{} connection {} to {}", recovery ? "Recovering" : "Creating", connectionName,
@@ -200,7 +190,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       for (ChannelHandler channelHandler : channels.values())
         channelHandler.recoverChannel();
 
-    // Migrate shutdown listeners
+    // Migrate connection state
     synchronized (shutdownListeners) {
       for (ShutdownListener listener : shutdownListeners)
         delegate.addShutdownListener(listener);

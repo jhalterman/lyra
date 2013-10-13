@@ -7,6 +7,7 @@ import java.net.SocketTimeoutException;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Command;
+import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Method;
 import com.rabbitmq.client.PossibleAuthenticationFailureException;
 import com.rabbitmq.client.ShutdownSignalException;
@@ -26,34 +27,25 @@ public final class Exceptions {
 
     return null;
   }
-  
+
+  /**
+   * Reliably returns whether the shutdown signal represents a connection closure.
+   */
+  public static boolean isConnectionClosure(ShutdownSignalException e) {
+    return e instanceof AlreadyClosedException ? e.getReference() instanceof Connection
+        : e.isHardError();
+  }
+
   public static boolean isFailureRetryable(Exception e, ShutdownSignalException sse) {
-    if (e instanceof SocketTimeoutException || e instanceof ConnectException)
+    if (e instanceof SocketTimeoutException || e instanceof ConnectException
+        || e instanceof AlreadyClosedException || e.getCause() instanceof EOFException)
       return true;
     if (e instanceof PossibleAuthenticationFailureException)
       return false;
     return sse != null && isFailureRetryable(sse);
   }
 
-  public static boolean isFailureRetryable(ShutdownSignalException e) {
-    if (e.isInitiatedByApplication())
-      return false;
-
-    Object reason = e.getReason();
-    if (reason instanceof Command) {
-      Command command = (Command) reason;
-      Method method = command.getMethod();
-      if (method instanceof AMQP.Connection.Close)
-        return isFailureRetryable(((AMQP.Connection.Close) method).getReplyCode());
-      if (method instanceof AMQP.Channel.Close)
-        return isFailureRetryable(((AMQP.Channel.Close) method).getReplyCode())
-            || e instanceof AlreadyClosedException || e.getCause() instanceof EOFException;
-    }
-
-    return false;
-  }
-
-  static boolean isFailureRetryable(int failureCode) {
+  private static boolean isFailureRetryable(int failureCode) {
     switch (failureCode) {
     /** Channel failures */
       case 311: // Content too large
@@ -96,5 +88,22 @@ public final class Exceptions {
       default:
         return false;
     }
+  }
+
+  private static boolean isFailureRetryable(ShutdownSignalException e) {
+    if (e.isInitiatedByApplication())
+      return false;
+
+    Object reason = e.getReason();
+    if (reason instanceof Command) {
+      Command command = (Command) reason;
+      Method method = command.getMethod();
+      if (method instanceof AMQP.Connection.Close)
+        return isFailureRetryable(((AMQP.Connection.Close) method).getReplyCode());
+      if (method instanceof AMQP.Channel.Close)
+        return isFailureRetryable(((AMQP.Channel.Close) method).getReplyCode());
+    }
+
+    return false;
   }
 }
