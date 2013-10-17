@@ -93,7 +93,7 @@ When a Connection or Channel are closed involuntarily (not as the result of an i
 
 ## Docs
 
-JavaDocs are available [here](https://jhalterman.github.com/sarge/javadoc).
+JavaDocs are available [here](https://jhalterman.github.com/lyra/javadoc).
 
 ## License
 
