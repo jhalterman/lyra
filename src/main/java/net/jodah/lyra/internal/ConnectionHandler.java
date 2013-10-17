@@ -33,7 +33,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   private static final Class<?>[] CHANNEL_TYPES = { Channel.class };
   private static final AtomicInteger CONNECTION_COUNTER = new AtomicInteger();
   static final ExecutorService RECOVERY_EXECUTORS = Executors.newCachedThreadPool(new NamedThreadFactory(
-      "recovery-%s"));
+      "lyra-recovery-%s"));
 
   private final ConnectionFactory connectionFactory;
   private final LyraOptions options;
@@ -73,7 +73,6 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
             public void run() {
               try {
                 recoverConnection();
-                log.info("Recovered connection {} to {}", connectionName, delegate.getAddress());
                 for (ConnectionListener listener : options.getConnectionListeners())
                   listener.onRecovery(proxy);
               } catch (Throwable t) {
@@ -149,7 +148,6 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   private void createConnection() throws IOException {
     try {
       createConnection(options.getConnectRetryPolicy(), false);
-      log.info("Created connection {} to {}", connectionName, delegate.getAddress());
       for (ConnectionListener listener : options.getConnectionListeners())
         listener.onCreate(proxy);
     } catch (IOException e) {
@@ -170,7 +168,12 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
           ExecutorService consumerPool = options.getConsumerThreadPool() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
               String.format("rabbitmq-%s-consumer", connectionName)))
               : options.getConsumerThreadPool();
-          return connectionFactory.newConnection(consumerPool, options.getAddresses());
+          Connection connection = connectionFactory.newConnection(consumerPool,
+              options.getAddresses());
+          log.info("{} connection {} to {}/{}", recovery ? "Recovered" : "Created", connectionName,
+              connection.getAddress().getHostAddress(), options.getVirtualHost().equals("/") ? ""
+                  : options.getVirtualHost());
+          return connection;
         }
       }, retryPolicy, recovery);
     } catch (Throwable t) {
