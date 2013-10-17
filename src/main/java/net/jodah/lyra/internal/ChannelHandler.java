@@ -9,7 +9,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import net.jodah.lyra.LyraOptions;
+import net.jodah.lyra.Options;
 import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConsumerListener;
 import net.jodah.lyra.internal.util.Collections;
@@ -27,7 +27,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 public class ChannelHandler extends RetryableResource implements InvocationHandler {
   private final ConnectionHandler connectionHandler;
-  private final LyraOptions options;
+  private final Options options;
   private final AtomicBoolean recovering = new AtomicBoolean();
   private final Map<String, Invocation> consumerInvocations = Collections.synchronizedMap();
   private List<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();
@@ -40,7 +40,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   Channel proxy;
   Channel delegate;
 
-  public ChannelHandler(ConnectionHandler connectionHandler, Channel delegate, LyraOptions options) {
+  public ChannelHandler(ConnectionHandler connectionHandler, Channel delegate, Options options) {
     this.connectionHandler = connectionHandler;
     this.delegate = delegate;
     this.options = options;

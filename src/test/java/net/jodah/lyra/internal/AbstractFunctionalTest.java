@@ -15,7 +15,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.jodah.lyra.LyraOptions;
+import net.jodah.lyra.Options;
 import net.jodah.lyra.retry.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
@@ -37,7 +37,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.client.impl.AMQCommand;
 
 public abstract class AbstractFunctionalTest {
-  protected LyraOptions options;
+  protected Options options;
   protected ConnectionFactory connectionFactory;
   protected Connection connection;
   protected ConnectionHandler connectionHandler;
@@ -91,10 +91,6 @@ public abstract class AbstractFunctionalTest {
   }
 
   protected void mockConnection() throws IOException {
-    if (options == null)
-      options = LyraOptions.forHost("test-host")
-          .withRetryPolicy(RetryPolicies.retryAlways().withRetryInterval(Duration.millis(10)))
-          .withRecoveryPolicy(RetryPolicies.retryAlways());
     if (connectionFactory == null) {
       connectionFactory = mock(ConnectionFactory.class);
       connection = mock(Connection.class);
@@ -102,7 +98,13 @@ public abstract class AbstractFunctionalTest {
           connection);
     }
 
-    connectionHandler = new ConnectionHandler(connectionFactory, options);
+    if (options == null)
+      options = new Options().withHost("test-host")
+          .withRetryPolicy(RetryPolicies.retryAlways().withRetryInterval(Duration.millis(10)))
+          .withRecoveryPolicy(RetryPolicies.retryAlways());
+    options.withConnectionFactory(connectionFactory);
+
+    connectionHandler = new ConnectionHandler(options);
     connectionProxy = (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
         new Class<?>[] { Connection.class }, connectionHandler);
     channels = new HashMap<Integer, MockChannel>();

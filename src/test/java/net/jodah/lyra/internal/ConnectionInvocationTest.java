@@ -7,7 +7,7 @@ import static org.testng.Assert.assertTrue;
 
 import java.io.IOException;
 
-import net.jodah.lyra.LyraOptions;
+import net.jodah.lyra.Options;
 import net.jodah.lyra.retry.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
@@ -25,7 +25,7 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
    * are not configured while recovery takes place in the background.
    */
   public void shouldThrowImmediatelyOnInvocationFailureWithNoRetryPolicy() throws Throwable {
-    options = LyraOptions.forHost("test-host")
+    options = new Options().withHost("test-host")
         .withRetryPolicy(RetryPolicies.retryNever())
         .withRecoveryPolicy(RetryPolicies.retryAlways());
     // Perform failing invocation
@@ -48,7 +48,7 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
    * policy is not set.
    */
   public void shouldThrowOnInvocationFailureWithNoRecoveryPolicy() throws Throwable {
-    options = LyraOptions.forHost("test-host")
+    options = new Options().withHost("test-host")
         .withRetryPolicy(RetryPolicies.retryAlways())
         .withRecoveryPolicy(RetryPolicies.retryNever());
     performThrowableInvocation(retryableConnectionShutdownSignal());

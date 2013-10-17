@@ -9,7 +9,7 @@ import static org.testng.Assert.assertTrue;
 
 import java.io.IOException;
 
-import net.jodah.lyra.LyraOptions;
+import net.jodah.lyra.Options;
 import net.jodah.lyra.retry.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
@@ -30,7 +30,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    * are not configured while recovery takes place in the background.
    */
   public void shouldThrowOnChannelShutdownWithNoRetryPolicy() throws Throwable {
-    options = LyraOptions.forHost("test-host")
+    options = new Options().withHost("test-host")
         .withRetryPolicy(RetryPolicies.retryNever())
         .withRecoveryPolicy(RetryPolicies.retryAlways());
     // Perform failing invocation
@@ -53,7 +53,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    * is not set.
    */
   public void shouldThrowOnChannelShutdownWithNoRecoveryPolicy() throws Throwable {
-    options = LyraOptions.forHost("test-host")
+    options = new Options().withHost("test-host")
         .withRetryPolicy(RetryPolicies.retryAlways())
         .withRecoveryPolicy(RetryPolicies.retryNever());
     performThrowableInvocation(retryableChannelShutdownSignal());
@@ -65,7 +65,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    * is not set, but the connection and channel should still be recovered.
    */
   public void shouldThrowOnConnectionShutdownWithNoRetryPolicy() throws Throwable {
-    options = LyraOptions.forHost("test-host")
+    options = new Options().withHost("test-host")
         .withRetryPolicy(RetryPolicies.retryNever())
         .withRecoveryPolicy(RetryPolicies.retryAlways());
     performThrowableInvocation(retryableConnectionShutdownSignal());
@@ -85,7 +85,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    * policy is not set.
    */
   public void shouldThrowOnConnectionShutdownWithNoRecoveryPolicy() throws Throwable {
-    options = LyraOptions.forHost("test-host")
+    options = new Options().withHost("test-host")
         .withRetryPolicy(RetryPolicies.retryAlways())
         .withRecoveryPolicy(RetryPolicies.retryNever());
     performThrowableInvocation(retryableConnectionShutdownSignal());
@@ -97,7 +97,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    * recovery policy is not set even when a channel recovery policy is set.
    */
   public void shouldThrowOnConnectionShutdownWithNoCxnRecoveryPolicy() throws Throwable {
-    options = LyraOptions.forHost("test-host")
+    options = new Options().withHost("test-host")
         .withRetryPolicy(RetryPolicies.retryAlways())
         .withConnectionRecoveryPolicy(RetryPolicies.retryNever())
         .withChannelRecoveryPolicy(RetryPolicies.retryAlways());
@@ -110,7 +110,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    * recovery policy is set but a channel recovery policy is not.
    */
   public void shouldThrowOnConnectionShutdownWithNoChannelRecoveryPolicy() throws Throwable {
-    options = LyraOptions.forHost("test-host")
+    options = new Options().withHost("test-host")
         .withRetryPolicy(RetryPolicies.retryAlways())
         .withConnectionRecoveryPolicy(RetryPolicies.retryAlways())
         .withChannelRecoveryPolicy(RetryPolicies.retryNever());

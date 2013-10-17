@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.jodah.lyra.LyraOptions;
+import net.jodah.lyra.Options;
 import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConnectionListener;
 import net.jodah.lyra.internal.util.Reflection;
@@ -35,16 +35,13 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   static final ExecutorService RECOVERY_EXECUTORS = Executors.newCachedThreadPool(new NamedThreadFactory(
       "lyra-recovery-%s"));
 
-  private final ConnectionFactory connectionFactory;
-  private final LyraOptions options;
+  private final Options options;
   private final String connectionName;
   private final Map<String, ChannelHandler> channels = new ConcurrentHashMap<String, ChannelHandler>();
   private Connection proxy;
   private Connection delegate;
 
-  public ConnectionHandler(ConnectionFactory connectionFactory, LyraOptions options)
-      throws IOException {
-    this.connectionFactory = connectionFactory;
+  public ConnectionHandler(Options options) throws IOException {
     this.options = options;
     this.connectionName = options.getName() == null ? String.format("cxn-%s",
         CONNECTION_COUNTER.incrementAndGet()) : options.getName();
@@ -168,11 +165,11 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
           ExecutorService consumerPool = options.getConsumerThreadPool() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
               String.format("rabbitmq-%s-consumer", connectionName)))
               : options.getConsumerThreadPool();
-          Connection connection = connectionFactory.newConnection(consumerPool,
+          ConnectionFactory f = options.getConnectionFactory();
+          Connection connection = options.getConnectionFactory().newConnection(consumerPool,
               options.getAddresses());
-          log.info("{} connection {} to {}/{}", recovery ? "Recovered" : "Created", connectionName,
-              connection.getAddress().getHostAddress(), options.getVirtualHost().equals("/") ? ""
-                  : options.getVirtualHost());
+          log.info("{} connection {} to {}{}", recovery ? "Recovered" : "Created", connectionName,
+              connection.getAddress(), options.getConnectionFactory().getVirtualHost());
           return connection;
         }
       }, retryPolicy, recovery);
