@@ -8,7 +8,7 @@ import static org.testng.Assert.fail;
 import java.net.ConnectException;
 import java.util.concurrent.ExecutorService;
 
-import net.jodah.lyra.Options;
+import net.jodah.lyra.config.Config;
 import net.jodah.lyra.retry.RetryPolicies;
 
 import org.testng.annotations.Test;
@@ -28,7 +28,7 @@ public class ConnectionFactoryInvocationTest extends AbstractFunctionalTest {
    * Asserts that invocation failures are rethrown when a retry policy is not set.
    */
   public void shouldThrowOnInvocationFailureWithNoRetryPolicy() throws Throwable {
-    options = new Options().withHost("test-host").withRetryPolicy(RetryPolicies.retryNever());
+    config = new Config().withRetryPolicy(RetryPolicies.retryNever());
     connectionFactory = mock(ConnectionFactory.class);
     connection = mock(Connection.class);
     when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(

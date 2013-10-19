@@ -11,6 +11,7 @@ Dealing with failure is a fact of life in distributed systems. Lyra is a [Rabbit
 * Automatic resource recovery
 * Automatic invocation retries
 * Event listeners
+* Flexible configuration
 
 ## Setup
 
@@ -20,10 +21,10 @@ Dealing with failure is a fact of life in distributed systems. Lyra is a [Rabbit
 
 #### Resource Recovery
 
-The key feature of Lyra is its ability to automatically recover resources such as [Connections][Connection], [Channels][Channel] and [Consumers][Consumer] when unexpected failures occur. To create *recoverable* resources, start by creating an Options object and specifying a recovery policy:
+The key feature of Lyra is its ability to automatically recover resources such as [Connections][Connection], [Channels][Channel] and [Consumers][Consumer] when unexpected failures occur. To start, create an `Options` object, specifying a recovery policy:
 
 ```java
-Options options = new Options()
+Config config = new Config()
 	.withRecoveryPolicy(new RetryPolicy()
 		.withMaxRetries(100)
 		.withInterval(Duration.seconds(1))
@@ -33,7 +34,7 @@ Options options = new Options()
 With our `options`, let's create a *recoverable* Connection along with some Channels and Consumers:
 
 ```java
-Connection connection = Connections.create(options);
+Connection connection = Connections.create(config);
 Channel channel1 = connection.createChannel(1);
 Channel channel2 = connection.createChannel(2);
 channel1.basicConsume("foo-queue", consumer1);
@@ -53,13 +54,13 @@ If the Connection is unexpectedly closed, Lyra will attempt to recover it along 
 Lyra also supports invocation retries when a *retryable* failure occurs while creating a Connection or invoking a method against a [Connection] or [Channel]. For example:
 
 ```java
-Options options = new Options()
+Config config = new Config()
 	.withRecoveryPolicy(RetryPolicies.retryAlways())
 	.withRetryPolicy(new RetryPolicy()
 		.withBackoff(Duration.seconds(1), Duration.seconds(30))
 		.withMaxDuration(Duration.minutes(10)));
 		
-Connection connection = Connections.create(options);
+Connection connection = Connections.create(config);
 Channel channel = connection.createChannel();
 channel.basicConsume("foo-queue", myConsumer);
 ```
@@ -71,11 +72,22 @@ Here we've created a new `Connection` and `Channel`, specifying a recovery polic
 Lyra offers [listeners](http://jodah.net/lyra/javadoc/net/jodah/lyra/event/package-summary.html) for creation and recovery events:
 
 ```java
-Options options = new Options();
+Config config = new Config();
 	.withConnectionListeners(myConnectionListener)
 	.withChannelListeners(myChannelListener)
 	.withConsumerListeners(myConsumerListener);
 ```
+
+### Resource Configuration
+
+Resources created through Lyra can be re-configured after creation by casting to a configurable type:
+
+```java
+ConfigurableConnection configurableConnection = (ConfigurableConnection)connection;
+ConfigurableChannel configurableChannel = (ConfigurableChannel)channel;
+```
+
+Configurable connections and channels can be used the same as regular connections and channels, but expose additional configuration that overrides any configuration that was present when the resource was created.
 
 ## Additional Notes
 

@@ -57,9 +57,9 @@ public abstract class AbstractInvocationTest extends AbstractFunctionalTest {
     Thread.sleep(100);
   }
 
-  abstract void performInvocation() throws IOException;
+  protected abstract void performInvocation() throws IOException;
 
-  abstract void mockInvocation(Exception e) throws IOException;
+  protected abstract void mockInvocation(Exception e) throws IOException;
 
-  abstract void mockRecovery(Exception e) throws IOException;
+  protected abstract void mockRecovery(Exception e) throws IOException;
 }

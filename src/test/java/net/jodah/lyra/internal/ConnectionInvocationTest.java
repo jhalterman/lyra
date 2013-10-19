@@ -7,7 +7,7 @@ import static org.testng.Assert.assertTrue;
 
 import java.io.IOException;
 
-import net.jodah.lyra.Options;
+import net.jodah.lyra.config.Config;
 import net.jodah.lyra.retry.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
@@ -25,9 +25,8 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
    * are not configured while recovery takes place in the background.
    */
   public void shouldThrowImmediatelyOnInvocationFailureWithNoRetryPolicy() throws Throwable {
-    options = new Options().withHost("test-host")
-        .withRetryPolicy(RetryPolicies.retryNever())
-        .withRecoveryPolicy(RetryPolicies.retryAlways());
+    config = new Config().withRetryPolicy(RetryPolicies.retryNever()).withRecoveryPolicy(
+        RetryPolicies.retryAlways());
     // Perform failing invocation
     performThrowableInvocation(retryableConnectionShutdownSignal());
 
@@ -48,9 +47,8 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
    * policy is not set.
    */
   public void shouldThrowOnInvocationFailureWithNoRecoveryPolicy() throws Throwable {
-    options = new Options().withHost("test-host")
-        .withRetryPolicy(RetryPolicies.retryAlways())
-        .withRecoveryPolicy(RetryPolicies.retryNever());
+    config = new Config().withRetryPolicy(RetryPolicies.retryAlways()).withRecoveryPolicy(
+        RetryPolicies.retryNever());
     performThrowableInvocation(retryableConnectionShutdownSignal());
     verifyCxnCreations(1);
     verifyChannelCreations(1, 1);
@@ -95,7 +93,7 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
   }
 
   @Override
-  void mockInvocation(Exception e) throws IOException {
+  protected void mockInvocation(Exception e) throws IOException {
     mockConsumer(1, 1);
     mockConsumer(1, 2);
     mockConsumer(2, 5);
@@ -105,12 +103,12 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
   }
 
   @Override
-  void performInvocation() throws IOException {
+  protected void performInvocation() throws IOException {
     connectionProxy.createChannel();
   }
 
   @Override
-  void mockRecovery(Exception e) throws IOException {
+  protected void mockRecovery(Exception e) throws IOException {
   }
 
   private void verifyInvocations(int invocations) throws IOException {

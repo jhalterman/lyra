@@ -13,7 +13,7 @@ public abstract class AbstractRecoveryTest extends AbstractFunctionalTest {
     mockConnection();
 
     final Waiter waiter = new Waiter();
-    options.withConnectionListeners(new DefaultConnectionListener() {
+    config.withConnectionListeners(new DefaultConnectionListener() {
       @Override
       public void onRecovery(Connection connection) {
         waiter.resume();

@@ -15,7 +15,9 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.jodah.lyra.Options;
+import net.jodah.lyra.ConnectionOptions;
+import net.jodah.lyra.config.Config;
+import net.jodah.lyra.config.ConfigurableConnection;
 import net.jodah.lyra.retry.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
@@ -37,14 +39,15 @@ import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.client.impl.AMQCommand;
 
 public abstract class AbstractFunctionalTest {
-  protected Options options;
+  protected Config config;
+  protected ConnectionOptions options;
   protected ConnectionFactory connectionFactory;
   protected Connection connection;
   protected ConnectionHandler connectionHandler;
   protected Connection connectionProxy;
   protected Map<Integer, MockChannel> channels;
 
-  static class MockConsumer extends DefaultConsumer {
+  protected static class MockConsumer extends DefaultConsumer {
     final Channel channel;
     final int consumerNumber;
 
@@ -60,7 +63,7 @@ public abstract class AbstractFunctionalTest {
     }
   }
 
-  static class MockChannel {
+  protected static class MockChannel {
     Channel proxy;
     Channel delegate;
     ChannelHandler channelHandler;
@@ -82,6 +85,8 @@ public abstract class AbstractFunctionalTest {
 
   @BeforeMethod
   protected void beforeMethod() {
+    options = null;
+    config = null;
     connectionFactory = null;
     channels = null;
   }
@@ -99,14 +104,17 @@ public abstract class AbstractFunctionalTest {
     }
 
     if (options == null)
-      options = new Options().withHost("test-host")
-          .withRetryPolicy(RetryPolicies.retryAlways().withRetryInterval(Duration.millis(10)))
-          .withRecoveryPolicy(RetryPolicies.retryAlways());
+      options = new ConnectionOptions().withHost("test-host");
     options.withConnectionFactory(connectionFactory);
+    if (config == null)
+      config = new Config().withRetryPolicy(
+          RetryPolicies.retryAlways().withRetryInterval(Duration.millis(10))).withRecoveryPolicy(
+          RetryPolicies.retryAlways());
 
-    connectionHandler = new ConnectionHandler(options);
-    connectionProxy = (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
-        new Class<?>[] { Connection.class }, connectionHandler);
+    connectionHandler = new ConnectionHandler(options, config);
+    connectionProxy = (ConfigurableConnection) Proxy.newProxyInstance(
+        Connection.class.getClassLoader(), new Class<?>[] { ConfigurableConnection.class },
+        connectionHandler);
     channels = new HashMap<Integer, MockChannel>();
   }
 

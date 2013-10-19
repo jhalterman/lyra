@@ -9,7 +9,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import net.jodah.lyra.Options;
+import net.jodah.lyra.config.ChannelConfig;
+import net.jodah.lyra.config.Config;
 import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConsumerListener;
 import net.jodah.lyra.internal.util.Collections;
@@ -27,8 +28,12 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 public class ChannelHandler extends RetryableResource implements InvocationHandler {
   private final ConnectionHandler connectionHandler;
-  private final Options options;
+  private final Config config;
   private final AtomicBoolean recovering = new AtomicBoolean();
+  Channel proxy;
+  Channel delegate;
+
+  // Delegate state
   private final Map<String, Invocation> consumerInvocations = Collections.synchronizedMap();
   private List<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();
   private List<FlowListener> flowListeners = new CopyOnWriteArrayList<FlowListener>();
@@ -37,13 +42,11 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   private Invocation basicQos;
   private boolean confirmSelect;
   private boolean txSelect;
-  Channel proxy;
-  Channel delegate;
 
-  public ChannelHandler(ConnectionHandler connectionHandler, Channel delegate, Options options) {
+  public ChannelHandler(ConnectionHandler connectionHandler, Channel delegate, Config config) {
     this.connectionHandler = connectionHandler;
     this.delegate = delegate;
-    this.options = options;
+    this.config = config;
   }
 
   @Override
@@ -55,6 +58,9 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     return callWithRetries(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
+        if (ChannelConfig.class.equals(method.getDeclaringClass()))
+          return Reflection.invoke(config, method, args);
+
         String methodName = method.getName();
         if ("basicCancel".equals(methodName) && args[0] != null)
           consumerInvocations.remove((String) args[0]);
@@ -98,7 +104,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
         return result;
       }
-    }, options.getChannelRetryPolicy(), false);
+    }, config.getChannelRetryPolicy(), false);
   }
 
   @Override
@@ -113,10 +119,45 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   @Override
   boolean canRecover(boolean connectionClosed) {
-    boolean recoverable = options.getChannelRecoveryPolicy() != null
-        && options.getChannelRecoveryPolicy().allowsRetries();
+    boolean recoverable = config.getChannelRecoveryPolicy() != null
+        && config.getChannelRecoveryPolicy().allowsRetries();
     return connectionClosed ? recoverable && connectionHandler.canRecover(connectionClosed)
         : recoverable;
+  }
+
+  synchronized RecoveryResult recoverChannel() throws Exception {
+    if (circuit.isClosed())
+      return RecoveryResult.Succeeded;
+
+    final Map<String, Invocation> consumers = consumerInvocations.isEmpty() ? null
+        : new HashMap<String, Invocation>(consumerInvocations);
+
+    try {
+      delegate = callWithRetries(new Callable<Channel>() {
+        @Override
+        public Channel call() throws Exception {
+          log.info("Recovering {} ", ChannelHandler.this);
+          Channel channel = connectionHandler.createChannel(delegate.getChannelNumber());
+          recoverConsumers(channel, consumers);
+          migrateConfiguration(channel);
+          circuit.close();
+          for (ChannelListener listener : config.getChannelListeners())
+            listener.onRecovery(proxy);
+          return channel;
+        }
+      }, config.getChannelRecoveryPolicy(), true);
+      return RecoveryResult.Succeeded;
+    } catch (Exception e) {
+      ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
+      log.error("Failed to recover {}", this, e);
+      for (ChannelListener listener : config.getChannelListeners())
+        listener.onRecoveryFailure(proxy, e);
+      if (sse != null && sse.isHardError())
+        throw e;
+      return RecoveryResult.Failed;
+    } finally {
+      recovering.set(false);
+    }
   }
 
   @Override
@@ -160,41 +201,6 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       channel.addReturnListener(listener);
   }
 
-  synchronized RecoveryResult recoverChannel() throws Exception {
-    if (circuit.isClosed())
-      return RecoveryResult.Succeeded;
-
-    final Map<String, Invocation> consumers = consumerInvocations.isEmpty() ? null
-        : new HashMap<String, Invocation>(consumerInvocations);
-
-    try {
-      delegate = callWithRetries(new Callable<Channel>() {
-        @Override
-        public Channel call() throws Exception {
-          log.info("Recovering {} ", ChannelHandler.this);
-          Channel channel = connectionHandler.createChannel(delegate.getChannelNumber());
-          recoverConsumers(channel, consumers);
-          migrateConfiguration(channel);
-          circuit.close();
-          for (ChannelListener listener : options.getChannelListeners())
-            listener.onRecovery(proxy);
-          return channel;
-        }
-      }, options.getChannelRecoveryPolicy(), true);
-      return RecoveryResult.Succeeded;
-    } catch (Exception e) {
-      ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
-      log.error("Failed to recover {}", this, e);
-      for (ChannelListener listener : options.getChannelListeners())
-        listener.onRecoveryFailure(proxy, e);
-      if (sse != null && sse.isHardError())
-        throw e;
-      return RecoveryResult.Failed;
-    } finally {
-      recovering.set(false);
-    }
-  }
-
   /**
    * Recovers the channel's consumers to given {@code channel}. If a consumer recovery fails due to
    * a channel closure, then we will not attempt to recover that consumer again.
@@ -208,12 +214,12 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         try {
           log.info("Recovering consumer-{} via {}", entry.getKey(), this);
           Reflection.invoke(channel, entry.getValue().method, entry.getValue().args);
-          for (ConsumerListener listener : options.getConsumerListeners())
+          for (ConsumerListener listener : config.getConsumerListeners())
             listener.onRecovery(consumer);
         } catch (Exception e) {
           ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
           log.error("Failed to recover consumer-{} via {}", entry.getKey(), this, e);
-          for (ConsumerListener listener : options.getConsumerListeners())
+          for (ConsumerListener listener : config.getConsumerListeners())
             listener.onRecoveryFailure(consumer, e);
           if (sse != null) {
             if (!sse.isHardError())
