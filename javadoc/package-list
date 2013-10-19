@@ -1,4 +1,5 @@
 net.jodah.lyra
+net.jodah.lyra.config
 net.jodah.lyra.event
 net.jodah.lyra.retry
 net.jodah.lyra.util
