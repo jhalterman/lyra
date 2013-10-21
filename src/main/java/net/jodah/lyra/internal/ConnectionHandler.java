@@ -174,7 +174,8 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
           Connection connection = options.getConnectionFactory().newConnection(consumerPool,
               options.getAddresses());
           log.info("{} connection {} to {}{}", recovery ? "Recovered" : "Created", connectionName,
-              connection.getAddress(), options.getConnectionFactory().getVirtualHost());
+              connection.getAddress().getHostAddress(), options.getConnectionFactory()
+                  .getVirtualHost());
           return connection;
         }
       }, retryPolicy, recovery);

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
+import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -97,8 +98,8 @@ public abstract class AbstractFunctionalTest {
 
   protected void mockConnection() throws IOException {
     if (connectionFactory == null) {
+      mockConnectionOnly();
       connectionFactory = mock(ConnectionFactory.class);
-      connection = mock(Connection.class);
       when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenReturn(
           connection);
     }
@@ -116,6 +117,14 @@ public abstract class AbstractFunctionalTest {
         Connection.class.getClassLoader(), new Class<?>[] { ConfigurableConnection.class },
         connectionHandler);
     channels = new HashMap<Integer, MockChannel>();
+  }
+
+  protected void mockConnectionOnly() throws IOException {
+    connection = mock(Connection.class);
+    InetAddress inetAddress = mock(InetAddress.class);
+    when(connection.getAddress()).thenReturn(inetAddress);
+    when(inetAddress.getHostAddress()).thenReturn("test-host");
+
   }
 
   protected MockChannel mockChannel() throws IOException {

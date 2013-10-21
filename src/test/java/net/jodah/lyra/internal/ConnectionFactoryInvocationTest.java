@@ -47,8 +47,8 @@ public class ConnectionFactoryInvocationTest extends AbstractFunctionalTest {
    * Asserts that a retryable connect failure results in the connection eventually succeeding.
    */
   public void shouldHandleRetryableConnectFailure() throws Throwable {
+    mockConnectionOnly();
     connectionFactory = mock(ConnectionFactory.class);
-    connection = mock(Connection.class);
     when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(
         failNTimes(3, new ConnectException("fail"), connection));
     mockConnection();
