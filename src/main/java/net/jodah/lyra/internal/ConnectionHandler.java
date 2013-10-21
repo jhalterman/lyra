@@ -67,7 +67,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
         channelHandler.circuit.open();
 
       if (!e.isInitiatedByApplication()) {
-        log.info("Connection {} was closed unexpectedly", ConnectionHandler.this);
+        log.error("Connection {} was closed unexpectedly", ConnectionHandler.this);
         if (canRecover(e.isHardError()))
           RECOVERY_EXECUTORS.execute(new Runnable() {
             @Override
