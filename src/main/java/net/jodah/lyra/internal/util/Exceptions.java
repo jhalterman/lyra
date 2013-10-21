@@ -38,7 +38,7 @@ public final class Exceptions {
 
   public static boolean isFailureRetryable(Exception e, ShutdownSignalException sse) {
     if (e instanceof SocketTimeoutException || e instanceof ConnectException
-        || e instanceof AlreadyClosedException || e.getCause() instanceof EOFException)
+        || e.getCause() instanceof EOFException)
       return true;
     if (e instanceof PossibleAuthenticationFailureException)
       return false;

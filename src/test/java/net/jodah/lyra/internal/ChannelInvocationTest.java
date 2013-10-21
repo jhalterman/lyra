@@ -16,8 +16,6 @@ import net.jodah.lyra.util.Duration;
 import org.jodah.concurrentunit.Waiter;
 import org.testng.annotations.Test;
 
-import com.rabbitmq.client.AlreadyClosedException;
-
 /**
  * Tests failures that occur as the result of a channel invocation.
  * 
@@ -227,8 +225,8 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
     mockConsumer(2, 5);
     mockConsumer(2, 6);
 
-    doAnswer(failNTimes(4, new AlreadyClosedException("foo", "bar"), null)).when(
-        mockChannel(1).delegate).basicCancel("foo-tag");
+    doAnswer(failNTimes(4, retryableChannelShutdownSignal(), null)).when(mockChannel(1).delegate)
+        .basicCancel("foo-tag");
 
     final Waiter waiter = new Waiter();
     for (int i = 0; i < 2; i++)
