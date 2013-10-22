@@ -155,7 +155,7 @@ public class Config implements ConnectionConfig {
   }
 
   @Override
-  public ConsumerConfig withConsumerRecovery(boolean enabled) {
+  public Config withConsumerRecovery(boolean enabled) {
     consumerRecovery = Boolean.valueOf(enabled);
     return this;
   }
