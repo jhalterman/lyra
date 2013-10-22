@@ -1,10 +1,10 @@
 # Lyra
 
-*Fault tolerant RabbitMQ client*
+*High availability RabbitMQ client*
 
 ## Introduction
 
-Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, allowing for AMQP resources such as connections, channels and consumers to be automatically recovered when server or network failures occur.
+Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that helps you achieve high availability in your services by embracing failure, allowing for AMQP resources such as connections, channels and consumers to be automatically recovered when server or network failures occur.
 
 #### Features
 
@@ -16,6 +16,26 @@ Dealing with failure is a fact of life in distributed systems. Lyra is a [Rabbit
 ## Setup
 
 `mvn install`
+
+Add the lyra dependency:
+
+```xml
+<dependency>
+  <groupId>net.jodah</groupId>
+  <artifactId>lyra</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Also add the latest [amqp-client] dependency:
+
+```
+<dependency>xml
+  <groupId>com.rabbitmq</groupId>
+  <artifactId>amqp-client</artifactId>
+  <version>CURRENT-VERSION</version>
+</dependency>
+```
 
 ## Usage
 
@@ -126,3 +146,4 @@ Copyright 2013 Jonathan Halterman - Released under the [Apache 2.0 license](http
 [Connection]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Connection.html
 [Channel]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html
 [Consumer]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Consumer.html
+[amqp-client]: http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22amqp-client%22
