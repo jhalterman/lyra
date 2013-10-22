@@ -8,6 +8,7 @@ import net.jodah.lyra.Connections;
 import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConnectionListener;
 import net.jodah.lyra.event.ConsumerListener;
+import net.jodah.lyra.internal.util.Assert;
 import net.jodah.lyra.retry.RetryPolicy;
 
 import com.rabbitmq.client.Channel;
@@ -97,8 +98,10 @@ public class Config implements ConnectionConfig {
 
   @Override
   public boolean isConsumerRecoveryEnabled() {
-    if (consumerRecovery != null)
-      return consumerRecovery;
+    Boolean result = isConsumerRecoveryEnabledInternal();
+    if (result != null)
+      return result;
+
     RetryPolicy policy = getChannelRecoveryPolicy();
     return policy != null && policy.allowsRetries();
   }
@@ -181,5 +184,32 @@ public class Config implements ConnectionConfig {
   public Config withRetryPolicy(RetryPolicy retryPolicy) {
     this.retryPolicy = retryPolicy;
     return this;
+  }
+
+  private Boolean isConsumerRecoveryEnabledInternal() {
+    return consumerRecovery != null ? consumerRecovery
+        : parent != null ? parent.isConsumerRecoveryEnabled() : null;
+  }
+
+  /**
+   * Returns the {@code channel} as a {@link ConfigurableChannel}.
+   * 
+   * @throws IllegalArgumentException if {@code channel} was not created by Lyra
+   */
+  public static ConfigurableChannel of(Channel channel) {
+    Assert.isTrue(channel instanceof ConfigurableChannel, "The channel {} was not created by Lyra",
+        channel);
+    return (ConfigurableChannel) channel;
+  }
+
+  /**
+   * Returns the {@code connection} as a {@link ConfigurableConnection}.
+   * 
+   * @throws IllegalArgumentException if {@code connection} was not created by Lyra
+   */
+  public static ConfigurableConnection of(Connection connection) {
+    Assert.isTrue(connection instanceof ConfigurableConnection,
+        "The connection {} was not created by Lyra", connection);
+    return (ConfigurableConnection) connection;
   }
 }

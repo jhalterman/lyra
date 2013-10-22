@@ -100,11 +100,11 @@ Config config = new Config();
 
 ### Resource Configuration
 
-Resources created through Lyra can be re-configured after creation by casting to a configurable type:
+Resources created through Lyra can be re-configured after creation by obtaining the configuration for the resource:
 
 ```java
-ConfigurableConnection configurableConnection = (ConfigurableConnection)connection;
-ConfigurableChannel configurableChannel = (ConfigurableChannel)channel;
+ConfigurableConnection configurableConnection = Config.of(connection);
+ConfigurableChannel configurableChannel = Config.of(channel);
 ```
 
 Configurable connections and channels can be used the same as regular connections and channels, but expose additional configuration that overrides any configuration that was present when the resource was created.
