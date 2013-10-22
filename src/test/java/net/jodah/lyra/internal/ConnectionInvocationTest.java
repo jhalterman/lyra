@@ -21,46 +21,6 @@ import org.testng.annotations.Test;
 @Test(groups = "functional")
 public class ConnectionInvocationTest extends AbstractInvocationTest {
   /**
-   * Asserts that a failed invocation results in the failure being rethrown immediately if retries
-   * are not configured while recovery takes place in the background.
-   */
-  public void shouldThrowImmediatelyOnInvocationFailureWithNoRetryPolicy() throws Throwable {
-    config = new Config().withRetryPolicy(RetryPolicies.retryNever()).withRecoveryPolicy(
-        RetryPolicies.retryAlways());
-    // Perform failing invocation
-    performThrowableInvocation(retryableConnectionShutdownSignal());
-
-    // Wait for connection to be recovered in background thread
-    assertTrue(connectionHandler.circuit.await(Duration.secs(1)));
-    verifyCxnCreations(2);
-    verifyChannelCreations(1, 2);
-    verifyChannelCreations(2, 2);
-    verifyConsumerCreations(1, 1, 2);
-    verifyConsumerCreations(1, 2, 2);
-    verifyConsumerCreations(2, 5, 2);
-    verifyConsumerCreations(2, 6, 2);
-    verifyInvocations(1);
-  }
-
-  /**
-   * Asserts that invocation failures are rethrown when a connection is shutdown and a recovery
-   * policy is not set.
-   */
-  public void shouldThrowOnInvocationFailureWithNoRecoveryPolicy() throws Throwable {
-    config = new Config().withRetryPolicy(RetryPolicies.retryAlways()).withRecoveryPolicy(
-        RetryPolicies.retryNever());
-    performThrowableInvocation(retryableConnectionShutdownSignal());
-    verifyCxnCreations(1);
-    verifyChannelCreations(1, 1);
-    verifyChannelCreations(2, 1);
-    verifyConsumerCreations(1, 1, 1);
-    verifyConsumerCreations(1, 2, 1);
-    verifyConsumerCreations(2, 5, 1);
-    verifyConsumerCreations(2, 6, 1);
-    verifyInvocations(1);
-  }
-
-  /**
    * Asserts that a retryable connection closure on a connection invocation results in the
    * connection and channel being recovered and the invocation being retried.
    */
@@ -89,6 +49,45 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
     verifyConsumerCreations(1, 2, 2);
     verifyConsumerCreations(2, 5, 2);
     verifyConsumerCreations(2, 6, 2);
+    verifyInvocations(1);
+  }
+
+  /**
+   * Asserts that a failed invocation results in the failure being rethrown immediately if retries
+   * are not configured while recovery takes place in the background.
+   */
+  public void shouldThrowImmediatelyOnInvocationFailureWithNoRetryPolicy() throws Throwable {
+    config = new Config().withRetryPolicy(RetryPolicies.retryNever()).withRecoveryPolicy(
+        RetryPolicies.retryAlways());
+    performThrowableInvocation(retryableConnectionShutdownSignal());
+
+    // Assert that the connection is recovered asynchronously
+    assertTrue(connectionHandler.circuit.await(Duration.secs(1)));
+    verifyCxnCreations(2);
+    verifyChannelCreations(1, 2);
+    verifyChannelCreations(2, 2);
+    verifyConsumerCreations(1, 1, 2);
+    verifyConsumerCreations(1, 2, 2);
+    verifyConsumerCreations(2, 5, 2);
+    verifyConsumerCreations(2, 6, 2);
+    verifyInvocations(1);
+  }
+
+  /**
+   * Asserts that invocation failures are rethrown when a connection is shutdown and a recovery
+   * policy is not set.
+   */
+  public void shouldThrowOnInvocationFailureWithNoRecoveryPolicy() throws Throwable {
+    config = new Config().withRetryPolicy(RetryPolicies.retryAlways()).withRecoveryPolicy(
+        RetryPolicies.retryNever());
+    performThrowableInvocation(retryableConnectionShutdownSignal());
+    verifyCxnCreations(1);
+    verifyChannelCreations(1, 1);
+    verifyChannelCreations(2, 1);
+    verifyConsumerCreations(1, 1, 1);
+    verifyConsumerCreations(1, 2, 1);
+    verifyConsumerCreations(2, 5, 1);
+    verifyConsumerCreations(2, 6, 1);
     verifyInvocations(1);
   }
 

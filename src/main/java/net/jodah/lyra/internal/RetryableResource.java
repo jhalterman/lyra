@@ -131,8 +131,7 @@ abstract class RetryableResource {
       } finally {
         closed = true;
         afterClosure();
-        circuit.interruptWaiters();
-        retryWaiter.interruptWaiters();
+        interruptWaiters();
       }
     } else if ("addShutdownListener".equals(method.getName()) && args[0] != null)
       shutdownListeners.add((ShutdownListener) args[0]);
@@ -148,8 +147,14 @@ abstract class RetryableResource {
    * 
    * @param waitForRecovery whether the invoking thread should wait for recovery or return
    *          immediately
+   * @throws Execption when recovery fails due to a connection closure
    */
   RecoveryResult recoverChannel(boolean waitForRecovery) throws Exception {
     return RecoveryResult.Failed;
+  }
+
+  void interruptWaiters() {
+    circuit.interruptWaiters();
+    retryWaiter.interruptWaiters();
   }
 }

@@ -17,6 +17,7 @@ import net.jodah.lyra.config.ConfigurableChannel;
 import net.jodah.lyra.config.ConnectionConfig;
 import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConnectionListener;
+import net.jodah.lyra.internal.util.Exceptions;
 import net.jodah.lyra.internal.util.Reflection;
 import net.jodah.lyra.internal.util.concurrent.NamedThreadFactory;
 import net.jodah.lyra.retry.RetryPolicy;
@@ -69,7 +70,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
 
       if (!e.isInitiatedByApplication()) {
         log.error("Connection {} was closed unexpectedly", ConnectionHandler.this);
-        if (canRecover(e.isHardError()))
+        if (canRecover(Exceptions.isConnectionClosure(e)))
           RECOVERY_EXECUTORS.execute(new Runnable() {
             @Override
             public void run() {
@@ -79,6 +80,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
                   listener.onRecovery(proxy);
               } catch (Throwable t) {
                 log.error("Failed to recover connection {}", connectionName, t);
+                interruptWaiters();
                 for (ConnectionListener listener : config.getConnectionListeners())
                   listener.onRecoveryFailure(proxy, t);
               }

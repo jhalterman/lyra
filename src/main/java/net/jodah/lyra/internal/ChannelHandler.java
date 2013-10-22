@@ -130,6 +130,27 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         : recoverable;
   }
 
+  @Override
+  RecoveryResult recoverChannel(boolean waitForRecovery) throws Exception {
+    // If not currently recovering
+    if (recovering.compareAndSet(false, true))
+      if (waitForRecovery)
+        return recoverChannel();
+      else
+        ConnectionHandler.RECOVERY_EXECUTORS.submit(new Callable<RecoveryResult>() {
+          public RecoveryResult call() throws Exception {
+            return recoverChannel();
+          }
+        });
+
+    return RecoveryResult.Pending;
+  }
+
+  /**
+   * Atomically recovers the channel.
+   * 
+   * @throws Exception when recovery fails due to a connection closure
+   */
   synchronized RecoveryResult recoverChannel() throws Exception {
     if (circuit.isClosed())
       return RecoveryResult.Succeeded;
@@ -154,11 +175,12 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       }, config.getChannelRecoveryPolicy(), true, false);
       return RecoveryResult.Succeeded;
     } catch (Exception e) {
-      ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
       log.error("Failed to recover {}", this, e);
+      interruptWaiters();
       for (ChannelListener listener : config.getChannelListeners())
         listener.onRecoveryFailure(proxy, e);
-      if (sse != null && sse.isHardError())
+      ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
+      if (sse != null && Exceptions.isConnectionClosure(sse))
         throw e;
       return RecoveryResult.Failed;
     } finally {
@@ -166,27 +188,11 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     }
   }
 
-  @Override
-  RecoveryResult recoverChannel(boolean waitForRecovery) throws Exception {
-    // If not currently recovering
-    if (recovering.compareAndSet(false, true))
-      if (waitForRecovery)
-        return recoverChannel();
-      else
-        ConnectionHandler.RECOVERY_EXECUTORS.submit(new Callable<RecoveryResult>() {
-          public RecoveryResult call() throws Exception {
-            return recoverChannel();
-          }
-        });
-
-    return RecoveryResult.Pending;
-  }
-
   /**
    * Migrates the channel's configuration to the given {@code channel}.
    */
   private void migrateConfiguration(Channel channel) throws Exception {
-    channel.setDefaultConsumer(channel.getDefaultConsumer());
+    channel.setDefaultConsumer(delegate.getDefaultConsumer());
     if (flowDisabled)
       channel.flow(false);
     if (basicQos != null)
@@ -210,6 +216,8 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   /**
    * Recovers the channel's consumers to given {@code channel}. If a consumer recovery fails due to
    * a channel closure, then we will not attempt to recover that consumer again.
+   * 
+   * @throws Exception when recovery fails due to a resource closure
    */
   private void recoverConsumers(Channel channel, Map<String, Invocation> consumers)
       throws Exception {
@@ -228,7 +236,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           for (ConsumerListener listener : config.getConsumerListeners())
             listener.onRecoveryFailure(consumer, e);
           if (sse != null) {
-            if (!sse.isHardError())
+            if (!Exceptions.isConnectionClosure(sse))
               consumers.remove(entry.getKey());
             throw e;
           }
