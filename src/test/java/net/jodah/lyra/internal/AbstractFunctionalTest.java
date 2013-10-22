@@ -100,6 +100,7 @@ public abstract class AbstractFunctionalTest {
     if (connectionFactory == null) {
       mockConnectionOnly();
       connectionFactory = mock(ConnectionFactory.class);
+      when(connectionFactory.getVirtualHost()).thenReturn("/");
       when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenReturn(
           connection);
     }
@@ -124,7 +125,7 @@ public abstract class AbstractFunctionalTest {
     InetAddress inetAddress = mock(InetAddress.class);
     when(connection.getAddress()).thenReturn(inetAddress);
     when(inetAddress.getHostAddress()).thenReturn("test-host");
-
+    when(connection.getPort()).thenReturn(5672);
   }
 
   protected MockChannel mockChannel() throws IOException {

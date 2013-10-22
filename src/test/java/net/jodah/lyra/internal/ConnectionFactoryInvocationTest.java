@@ -25,25 +25,6 @@ import com.rabbitmq.client.ConnectionFactory;
 @Test(groups = "functional")
 public class ConnectionFactoryInvocationTest extends AbstractFunctionalTest {
   /**
-   * Asserts that invocation failures are rethrown when a retry policy is not set.
-   */
-  public void shouldThrowOnInvocationFailureWithNoRetryPolicy() throws Throwable {
-    config = new Config().withRetryPolicy(RetryPolicies.retryNever());
-    connectionFactory = mock(ConnectionFactory.class);
-    connection = mock(Connection.class);
-    when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(
-        failNTimes(3, new ConnectException("fail"), connection));
-
-    try {
-      mockConnection();
-      fail();
-    } catch (Exception expected) {
-    }
-
-    verifyCxnCreations(1);
-  }
-
-  /**
    * Asserts that a retryable connect failure results in the connection eventually succeeding.
    */
   public void shouldHandleRetryableConnectFailure() throws Throwable {
@@ -63,6 +44,25 @@ public class ConnectionFactoryInvocationTest extends AbstractFunctionalTest {
     connection = mock(Connection.class);
     when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(
         failNTimes(3, new RuntimeException(), connection));
+
+    try {
+      mockConnection();
+      fail();
+    } catch (Exception expected) {
+    }
+
+    verifyCxnCreations(1);
+  }
+
+  /**
+   * Asserts that invocation failures are rethrown when a retry policy is not set.
+   */
+  public void shouldThrowOnInvocationFailureWithNoRetryPolicy() throws Throwable {
+    config = new Config().withRetryPolicy(RetryPolicies.retryNever());
+    connectionFactory = mock(ConnectionFactory.class);
+    connection = mock(Connection.class);
+    when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(
+        failNTimes(3, new ConnectException("fail"), connection));
 
     try {
       mockConnection();

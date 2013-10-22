@@ -19,7 +19,8 @@ public interface ChannelListener {
   void onCreateFailure(Throwable failure);
 
   /**
-   * Called after the {@code channel} is recovered from an unexpected closure.
+   * Called after the {@code channel} is recovered from an unexpected closure, but before its
+   * consumers are recovered.
    */
   void onRecovery(Channel channel);
 

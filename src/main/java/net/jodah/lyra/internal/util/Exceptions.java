@@ -36,16 +36,16 @@ public final class Exceptions {
         : e.isHardError();
   }
 
-  public static boolean isFailureRetryable(Exception e, ShutdownSignalException sse) {
+  public static boolean isRetryable(Exception e, ShutdownSignalException sse) {
     if (e instanceof SocketTimeoutException || e instanceof ConnectException
         || e.getCause() instanceof EOFException)
       return true;
     if (e instanceof PossibleAuthenticationFailureException)
       return false;
-    return sse != null && isFailureRetryable(sse);
+    return sse != null && isRetryable(sse);
   }
 
-  private static boolean isFailureRetryable(int failureCode) {
+  private static boolean isRetryable(int failureCode) {
     switch (failureCode) {
     /** Channel failures */
       case 311: // Content too large
@@ -90,7 +90,7 @@ public final class Exceptions {
     }
   }
 
-  private static boolean isFailureRetryable(ShutdownSignalException e) {
+  private static boolean isRetryable(ShutdownSignalException e) {
     if (e.isInitiatedByApplication())
       return false;
 
@@ -99,9 +99,9 @@ public final class Exceptions {
       Command command = (Command) reason;
       Method method = command.getMethod();
       if (method instanceof AMQP.Connection.Close)
-        return isFailureRetryable(((AMQP.Connection.Close) method).getReplyCode());
+        return isRetryable(((AMQP.Connection.Close) method).getReplyCode());
       if (method instanceof AMQP.Channel.Close)
-        return isFailureRetryable(((AMQP.Channel.Close) method).getReplyCode());
+        return isRetryable(((AMQP.Channel.Close) method).getReplyCode());
     }
 
     return false;

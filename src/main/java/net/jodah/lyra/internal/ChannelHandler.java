@@ -104,7 +104,12 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
         return result;
       }
-    }, config.getChannelRetryPolicy(), false);
+
+      @Override
+      public String toString() {
+        return Reflection.toString(method);
+      }
+    }, config.getChannelRetryPolicy(), false, true);
   }
 
   @Override
@@ -138,14 +143,15 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         public Channel call() throws Exception {
           log.info("Recovering {} ", ChannelHandler.this);
           Channel channel = connectionHandler.createChannel(delegate.getChannelNumber());
-          recoverConsumers(channel, consumers);
           migrateConfiguration(channel);
-          circuit.close();
           for (ChannelListener listener : config.getChannelListeners())
             listener.onRecovery(proxy);
+          if (config.isConsumerRecoveryEnabled())
+            recoverConsumers(channel, consumers);
+          circuit.close();
           return channel;
         }
-      }, config.getChannelRecoveryPolicy(), true);
+      }, config.getChannelRecoveryPolicy(), true, false);
       return RecoveryResult.Succeeded;
     } catch (Exception e) {
       ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);

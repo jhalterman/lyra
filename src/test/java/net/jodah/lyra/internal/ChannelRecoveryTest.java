@@ -20,6 +20,41 @@ public class ChannelRecoveryTest extends AbstractRecoveryTest {
    */
   public void shouldHandleRetryableChannelClosure() throws Throwable {
     performRecovery(retryableChannelShutdownSignal(), 1);
+    verifyChannelFailure();
+  }
+
+  /**
+   * Asserts that a non-retryable channel closure via a ShutdownListener results in the channel
+   * being recovered, but the failed consumer not being recovered.
+   */
+  public void shouldHandleNonRetryableChannelClosure() throws Throwable {
+    performRecovery(nonRetryableChannelShutdownSignal(), 1);
+    verifyChannelFailure();
+  }
+
+  /**
+   * Asserts that a retryable connection closure via a ShutdownListener results in the connection
+   * and channel being recovered.
+   */
+  public void shouldHandleRetryableConnectionClosure() throws Throwable {
+    performRecovery(retryableConnectionShutdownSignal(), 4);
+    verifyConnectionFailure();
+  }
+
+  /**
+   * Asserts that an non-retryable connection closure via a ShutdownListener results in the failure
+   * being re-thrown and logged.
+   */
+  public void shouldHandleNonRetryableConnectionClosure() throws Throwable {
+    performRecovery(nonRetryableConnectionShutdownSignal(), 4);
+    verifyConnectionFailure();
+  }
+
+  /**
+   * All channel recoveries should result in the same number of invocations since we're not retrying
+   * invocations.
+   */
+  private void verifyChannelFailure() throws Throwable {
     verifyCxnCreations(2);
     verifyChannelCreations(1, 2);
     verifyChannelCreations(2, 3);
@@ -30,41 +65,10 @@ public class ChannelRecoveryTest extends AbstractRecoveryTest {
   }
 
   /**
-   * Asserts that a non-retryable channel closure via a ShutdownListener results in the failure
-   * being re-thrown.
+   * All connection recoveries should result in the same number of invocations since we're not
+   * retrying invocations.
    */
-  public void shouldHandleNonRetryableChannelClosure() throws Throwable {
-    performRecovery(nonRetryableChannelShutdownSignal(), 1);
-    verifyCxnCreations(2);
-    verifyChannelCreations(1, 2);
-    verifyChannelCreations(2, 2);
-    verifyConsumerCreations(1, 1, 2);
-    verifyConsumerCreations(1, 2, 2);
-    verifyConsumerCreations(2, 5, 2);
-    verifyConsumerCreations(2, 6, 2);
-  }
-
-  /**
-   * Asserts that a retryable connection closure via a ShutdownListener results in the connection
-   * and channel being recovered.
-   */
-  public void shouldHandleRetryableConnectionClosure() throws Throwable {
-    performRecovery(retryableConnectionShutdownSignal(), 4);
-    verifyCxnCreations(5);
-    verifyChannelCreations(1, 5);
-    verifyChannelCreations(2, 5);
-    verifyConsumerCreations(1, 1, 5);
-    verifyConsumerCreations(1, 2, 5);
-    verifyConsumerCreations(2, 5, 5);
-    verifyConsumerCreations(2, 6, 5);
-  }
-
-  /**
-   * Asserts that an non-retryable connection closure via a ShutdownListener results in the failure
-   * being re-thrown.
-   */
-  public void shouldHandleNonRetryableConnectionClosure() throws Throwable {
-    performRecovery(nonRetryableConnectionShutdownSignal(), 4);
+  private void verifyConnectionFailure() throws Throwable {
     verifyCxnCreations(5);
     verifyChannelCreations(1, 5);
     verifyChannelCreations(2, 5);

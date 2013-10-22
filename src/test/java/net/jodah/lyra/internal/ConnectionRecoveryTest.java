@@ -20,13 +20,7 @@ public class ConnectionRecoveryTest extends AbstractRecoveryTest {
    */
   public void shouldHandleRetryableConnectionClosure() throws Throwable {
     performRecovery(retryableConnectionShutdownSignal(), 4);
-    verifyCxnCreations(5);
-    verifyChannelCreations(1, 5); // Failed channel
-    verifyChannelCreations(2, 2);
-    verifyConsumerCreations(1, 1, 2);
-    verifyConsumerCreations(1, 2, 2);
-    verifyConsumerCreations(2, 5, 2);
-    verifyConsumerCreations(2, 6, 2);
+    verifyConnectionFailure();
   }
 
   /**
@@ -35,6 +29,14 @@ public class ConnectionRecoveryTest extends AbstractRecoveryTest {
    */
   public void shouldHandleNonRetryableConnectionClosure() throws Throwable {
     performRecovery(nonRetryableConnectionShutdownSignal(), 4);
+    verifyConnectionFailure();
+  }
+
+  /**
+   * All recoveries should result in the same number of invocations since we're not retrying
+   * invocations.
+   */
+  private void verifyConnectionFailure() throws Throwable {
     verifyCxnCreations(5);
     verifyChannelCreations(1, 5); // Failed channel
     verifyChannelCreations(2, 2);

@@ -11,7 +11,18 @@ public interface ConsumerConfig {
   Collection<ConsumerListener> getConsumerListeners();
 
   /**
+   * Returns whether consumer recovery is enabled. Defaults to true when channel recovery is
+   * configured.
+   */
+  boolean isConsumerRecoveryEnabled();
+
+  /**
    * Sets the {@code consumerListeners} to call on consumer related events.
    */
   ConnectionConfig withConsumerListeners(ConsumerListener... consumerListeners);
+
+  /**
+   * Sets whether consumer recovery is enabled or not.
+   */
+  ConsumerConfig withConsumerRecovery(boolean enabled);
 }

@@ -27,6 +27,7 @@ public class Config implements ConnectionConfig {
   private RetryPolicy connectionRetryPolicy;
   private RetryPolicy channelRecoveryPolicy;
   private RetryPolicy channelRetryPolicy;
+  private Boolean consumerRecovery;
   private Collection<ConnectionListener> connectionListeners = Collections.emptyList();
   private Collection<ChannelListener> channelListeners = Collections.emptyList();
   private Collection<ConsumerListener> consumerListeners = Collections.emptyList();
@@ -95,6 +96,14 @@ public class Config implements ConnectionConfig {
   }
 
   @Override
+  public boolean isConsumerRecoveryEnabled() {
+    if (consumerRecovery != null)
+      return consumerRecovery;
+    RetryPolicy policy = getChannelRecoveryPolicy();
+    return policy != null && policy.allowsRetries();
+  }
+
+  @Override
   public Config withChannelListeners(ChannelListener... channelListeners) {
     this.channelListeners = Arrays.asList(channelListeners);
     return this;
@@ -142,6 +151,12 @@ public class Config implements ConnectionConfig {
   @Override
   public Config withConsumerListeners(ConsumerListener... consumerListeners) {
     this.consumerListeners = Arrays.asList(consumerListeners);
+    return this;
+  }
+
+  @Override
+  public ConsumerConfig withConsumerRecovery(boolean enabled) {
+    consumerRecovery = Boolean.valueOf(enabled);
     return this;
   }
 

@@ -23,6 +23,7 @@ import net.jodah.lyra.retry.RetryPolicy;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 
@@ -113,7 +114,12 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
               ConnectionConfig.class.equals(method.getDeclaringClass()) ? config : delegate,
               method, args);
         }
-      }, config.getConnectionRetryPolicy(), false);
+
+        @Override
+        public String toString() {
+          return Reflection.toString(method);
+        }
+      }, config.getConnectionRetryPolicy(), false, true);
     } catch (Throwable t) {
       if ("createChannel".equals(method.getName())) {
         log.error("Failed to create channel on {}", connectionName, t);
@@ -168,17 +174,19 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
         public Connection call() throws IOException {
           log.info("{} connection {} to {}", recovery ? "Recovering" : "Creating", connectionName,
               options.getAddresses());
-          ExecutorService consumerPool = options.getConsumerThreadPool() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
+          ExecutorService consumerPool = options.getConsumerExecutor() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
               String.format("rabbitmq-%s-consumer", connectionName)))
-              : options.getConsumerThreadPool();
-          Connection connection = options.getConnectionFactory().newConnection(consumerPool,
-              options.getAddresses());
-          log.info("{} connection {} to {}{}", recovery ? "Recovered" : "Created", connectionName,
-              connection.getAddress().getHostAddress(), options.getConnectionFactory()
-                  .getVirtualHost());
+              : options.getConsumerExecutor();
+          ConnectionFactory cxnFactory = options.getConnectionFactory();
+          Connection connection = cxnFactory.newConnection(consumerPool, options.getAddresses());
+          final String amqpAddress = String.format("amqp://%s:%s/%s", connection.getAddress()
+              .getHostAddress(), connection.getPort(), "/".equals(cxnFactory.getVirtualHost()) ? ""
+              : cxnFactory.getVirtualHost());
+          log.info("{} connection {} to {}", recovery ? "Recovered" : "Created", connectionName,
+              amqpAddress);
           return connection;
         }
-      }, retryPolicy, recovery);
+      }, retryPolicy, recovery, false);
     } catch (Throwable t) {
       if (t instanceof IOException)
         throw (IOException) t;

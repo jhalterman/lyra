@@ -1,1 +1,2 @@
 override which AMQP response codes are retryable/recoverable
+build queue/exchange recovery where an individual channel (or all channels) can be directed to recover queues/exchanges that are declared through the channel

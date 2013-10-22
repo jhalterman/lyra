@@ -99,4 +99,9 @@ public class ReentrantCircuit {
   public void open() {
     sync.open();
   }
+
+  @Override
+  public String toString() {
+    return isClosed() ? "closed" : "open";
+  }
 }

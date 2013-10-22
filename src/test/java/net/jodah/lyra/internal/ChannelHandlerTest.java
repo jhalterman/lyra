@@ -12,7 +12,7 @@ public class ChannelHandlerTest extends AbstractFunctionalTest {
     mockConnection();
     Channel channel = mockChannel().proxy;
     channel.close();
-    channel.basicRecover();
+    channel.abort();
   }
 
   public void shouldHandleCancelWithNullArgs() throws Throwable {

@@ -27,7 +27,7 @@ public class ConnectionOptions {
   private String host = "localhost";
   private Address[] addresses;
   private String name;
-  private ExecutorService consumerThreadPool;
+  private ExecutorService executor;
 
   public ConnectionOptions() {
     factory = new ConnectionFactory();
@@ -59,7 +59,7 @@ public class ConnectionOptions {
     host = options.host;
     addresses = options.addresses;
     name = options.name;
-    consumerThreadPool = options.consumerThreadPool;
+    executor = options.executor;
   }
 
   /**
@@ -80,8 +80,8 @@ public class ConnectionOptions {
     return factory;
   }
 
-  public ExecutorService getConsumerThreadPool() {
-    return consumerThreadPool;
+  public ExecutorService getConsumerExecutor() {
+    return executor;
   }
 
   public String getName() {
@@ -141,13 +141,13 @@ public class ConnectionOptions {
   }
 
   /**
-   * Sets the thread pool for threads on which consumers will be called. The
-   * {@code consumerThreadPool} will not be shutdown when a connection is closed.
+   * Sets the executor used to handle consumer callbacks. The {@code executor} will not be shutdown
+   * when a connection is closed.
    * 
-   * @throws NullPointerException if {@code consumerThreadPool} is null
+   * @throws NullPointerException if {@code executor} is null
    */
-  public ConnectionOptions withConsumerThreadPool(ExecutorService consumerThreadPool) {
-    this.consumerThreadPool = Assert.notNull(consumerThreadPool, "consumerThreadPool");
+  public ConnectionOptions withConsumerExecutor(ExecutorService executor) {
+    this.executor = Assert.notNull(executor, "executor");
     return this;
   }
 
