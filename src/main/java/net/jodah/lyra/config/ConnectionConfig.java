@@ -14,7 +14,7 @@ import com.rabbitmq.client.Connection;
  */
 public interface ConnectionConfig extends ChannelConfig {
   /**
-   * Returns the connection's listeners.
+   * Returns the connection's listeners else empty list if none were configured.
    * 
    * @see #withConnectionListeners(ConnectionListener...)
    */

@@ -14,7 +14,7 @@ import com.rabbitmq.client.Channel;
  */
 public interface ChannelConfig extends ConsumerConfig {
   /**
-   * Returns the channel's listeners.
+   * Returns the channel's listeners else empty list if none were configured.
    * 
    * @see #withChannelListeners(ChannelListener...)
    */

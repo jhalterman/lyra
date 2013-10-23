@@ -30,9 +30,9 @@ public class Config implements ConnectionConfig {
   private RetryPolicy channelRecoveryPolicy;
   private RetryPolicy channelRetryPolicy;
   private Boolean consumerRecovery;
-  private Collection<ConnectionListener> connectionListeners = Collections.emptyList();
-  private Collection<ChannelListener> channelListeners = Collections.emptyList();
-  private Collection<ConsumerListener> consumerListeners = Collections.emptyList();
+  private Collection<ConnectionListener> connectionListeners;
+  private Collection<ChannelListener> channelListeners;
+  private Collection<ConsumerListener> consumerListeners;
 
   public Config() {
     parent = null;
@@ -48,7 +48,7 @@ public class Config implements ConnectionConfig {
   @Override
   public Collection<ChannelListener> getChannelListeners() {
     return channelListeners != null ? channelListeners
-        : parent != null ? parent.getChannelListeners() : null;
+        : parent != null ? parent.getChannelListeners() : Collections.<ChannelListener>emptyList();
   }
 
   @Override
@@ -66,7 +66,8 @@ public class Config implements ConnectionConfig {
   @Override
   public Collection<ConnectionListener> getConnectionListeners() {
     return connectionListeners != null ? connectionListeners
-        : parent != null ? parent.getConnectionListeners() : null;
+        : parent != null ? parent.getConnectionListeners()
+            : Collections.<ConnectionListener>emptyList();
   }
 
   @Override
@@ -98,7 +99,8 @@ public class Config implements ConnectionConfig {
   @Override
   public Collection<ConsumerListener> getConsumerListeners() {
     return consumerListeners != null ? consumerListeners
-        : parent != null ? parent.getConsumerListeners() : null;
+        : parent != null ? parent.getConsumerListeners()
+            : Collections.<ConsumerListener>emptyList();
   }
 
   @Override

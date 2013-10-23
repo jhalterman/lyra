@@ -13,7 +13,7 @@ import com.rabbitmq.client.Consumer;
  */
 public interface ConsumerConfig {
   /**
-   * Returns the consumer listeners.
+   * Returns the consumer listeners else empty list if none were configured.
    * 
    * @see #getConsumerListeners()
    */
