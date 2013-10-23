@@ -19,7 +19,7 @@ public interface ConsumerConfig {
   /**
    * Sets the {@code consumerListeners} to call on consumer related events.
    */
-  ConnectionConfig withConsumerListeners(ConsumerListener... consumerListeners);
+  ConsumerConfig withConsumerListeners(ConsumerListener... consumerListeners);
 
   /**
    * Sets whether consumer recovery is enabled or not.
