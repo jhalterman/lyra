@@ -46,6 +46,14 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   private Connection proxy;
   private Connection delegate;
 
+  static {
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      public void run() {
+        RECOVERY_EXECUTORS.shutdownNow();
+      }
+    });
+  }
+
   public ConnectionHandler(ConnectionOptions options, Config config) throws IOException {
     this.options = options;
     this.config = config;
