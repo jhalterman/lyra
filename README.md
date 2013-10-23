@@ -41,7 +41,7 @@ Also add the latest [amqp-client] dependency:
 
 #### Resource Recovery
 
-The key feature of Lyra is its ability to automatically recover resources such as [Connections][Connection], [Channels][Channel] and [Consumers][Consumer] when unexpected failures occur. To start, create an `Options` object, specifying a recovery policy:
+The key feature of Lyra is its ability to automatically recover resources such as [Connections][Connection], [Channels][Channel] and [Consumers][Consumer] when unexpected failures occur. To start, create a `Config` object, specifying a recovery policy:
 
 ```java
 Config config = new Config()
@@ -51,7 +51,7 @@ Config config = new Config()
 		.withMaxDuration(Duration.minutes(5)));
 ```
 
-With our `options`, let's create a *recoverable* Connection along with some Channels and Consumers:
+With our `config`, let's create a *recoverable* Connection along with some Channels and Consumers:
 
 ```java
 Connection connection = Connections.create(config);
@@ -97,6 +97,8 @@ Config config = new Config();
 	.withChannelListeners(myChannelListener)
 	.withConsumerListeners(myConsumerListener);
 ```
+
+Event listeners can be useful for setting up additional resources during recovery, such as auto-deleted exchanges and queues.
 
 #### Resource Configuration
 
@@ -147,3 +149,4 @@ Copyright 2013 Jonathan Halterman - Released under the [Apache 2.0 license](http
 [Channel]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html
 [Consumer]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Consumer.html
 [amqp-client]: http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22amqp-client%22
+[before-consumer-recovery]: http://jodah.net/lyra/javadoc/net/jodah/lyra/event/ConsumerListener.html#onBeforeRecovery(com.rabbitmq.client.Consumer%2C%20com.rabbitmq.client.Channel)
