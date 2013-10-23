@@ -29,7 +29,7 @@ Add the lyra dependency:
 
 Also add the latest [amqp-client] dependency:
 
-```
+```xml
 <dependency>xml
   <groupId>com.rabbitmq</groupId>
   <artifactId>amqp-client</artifactId>
@@ -100,7 +100,7 @@ Config config = new Config();
 
 ### Resource Configuration
 
-Resources created through Lyra can be re-configured after creation by obtaining the configuration for the resource:
+Resources created through Lyra can be re-configured after creation:
 
 ```java
 ConfigurableConnection configurableConnection = Config.of(connection);
