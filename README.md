@@ -23,7 +23,7 @@ Add the lyra dependency:
 <dependency>
   <groupId>net.jodah</groupId>
   <artifactId>lyra</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
@@ -98,7 +98,7 @@ Config config = new Config();
 	.withConsumerListeners(myConsumerListener);
 ```
 
-### Resource Configuration
+#### Resource Configuration
 
 Resources created through Lyra can be re-configured after creation:
 
