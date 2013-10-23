@@ -15,16 +15,22 @@ import com.rabbitmq.client.Channel;
 public interface ChannelConfig extends ConsumerConfig {
   /**
    * Returns the channel's listeners.
+   * 
+   * @see #withChannelListeners(ChannelListener...)
    */
   Collection<ChannelListener> getChannelListeners();
 
   /**
    * Returns the channel's recovery policy.
+   * 
+   * @see #withChannelRecoveryPolicy(RetryPolicy)
    */
   RetryPolicy getChannelRecoveryPolicy();
 
   /**
    * Returns the channel's retry policy.
+   * 
+   * @see #withChannelRetryPolicy(RetryPolicy)
    */
   RetryPolicy getChannelRetryPolicy();
 

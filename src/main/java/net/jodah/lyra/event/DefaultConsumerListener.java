@@ -1,18 +1,23 @@
 package net.jodah.lyra.event;
 
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Consumer;
 
 /**
- * No-op listener for sub-classing.
+ * No-op consumer listener for sub-classing.
  * 
  * @author Jonathan Halterman
  */
-public abstract class DefaultConsumerListener implements ConsumerListener {
+public class DefaultConsumerListener implements ConsumerListener {
   @Override
-  public void onRecovery(Consumer consumer) {
+  public void onBeforeRecovery(Consumer consumer, Channel channel) {
   }
 
   @Override
-  public void onRecoveryFailure(Consumer consumer, Throwable failure) {
+  public void onAfterRecovery(Consumer consumer, Channel channel) {
+  }
+
+  @Override
+  public void onRecoveryFailure(Consumer consumer, Channel channel, Throwable failure) {
   }
 }

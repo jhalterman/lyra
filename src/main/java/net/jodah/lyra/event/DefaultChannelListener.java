@@ -3,7 +3,7 @@ package net.jodah.lyra.event;
 import com.rabbitmq.client.Channel;
 
 /**
- * No-op listener for sub-classing.
+ * No-op channel listener for sub-classing.
  * 
  * @author Jonathan Halterman
  */

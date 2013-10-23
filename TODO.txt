@@ -3,3 +3,4 @@ build queue/exchange recovery where an individual channel (or all channels) can 
 a channel recovery failure that results in a connection recovery should wait on the connection recovery
 ability to await recovery of a resource. perhaps can be addressed with listeners.
 consider throwing RecoveryInProgressException or something like that if an invocation fails while recovery is in progress. this is perhaps a better alternative to AlreadyClosedException which implies that things are hosed for good.
+config for individual consumers

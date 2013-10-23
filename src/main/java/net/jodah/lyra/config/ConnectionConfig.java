@@ -15,16 +15,22 @@ import com.rabbitmq.client.Connection;
 public interface ConnectionConfig extends ChannelConfig {
   /**
    * Returns the connection's listeners.
+   * 
+   * @see #withConnectionListeners(ConnectionListener...)
    */
   Collection<ConnectionListener> getConnectionListeners();
 
   /**
    * Returns the connection's recovery policy.
+   * 
+   * @see #withConnectionRecoveryPolicy(RetryPolicy)
    */
   RetryPolicy getConnectionRecoveryPolicy();
 
   /**
    * Returns the connection's retry policy.
+   * 
+   * @see #withConnectionRetryPolicy(RetryPolicy)
    */
   RetryPolicy getConnectionRetryPolicy();
 

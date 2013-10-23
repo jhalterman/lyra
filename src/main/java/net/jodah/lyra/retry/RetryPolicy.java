@@ -30,22 +30,49 @@ public class RetryPolicy {
     return (maxRetries == -1 || maxRetries > 0) && (maxDuration == null || maxDuration.length > 0);
   }
 
+  /**
+   * Returns the max duration.
+   * 
+   * @see #withMaxDuration(Duration)
+   */
   public Duration getMaxDuration() {
     return maxDuration;
   }
 
+  /**
+   * Returns the max retries.
+   * 
+   * @see #withMaxRetries(int)
+   */
   public int getMaxRetries() {
     return maxRetries;
   }
 
+  /**
+   * Returns the max retry interval for backoff retries.
+   * 
+   * @see #withBackoff(Duration, Duration)
+   */
   public Duration getMaxRetryInterval() {
     return maxRetryInterval;
   }
 
+  /**
+   * Returns the retry interval.
+   * 
+   * @see #withRetryInterval(Duration)
+   * @see #withBackoff(Duration, Duration)
+   * @see #withBackoff(Duration, Duration, int)
+   */
   public Duration getRetryInterval() {
     return retryInterval;
   }
 
+  /**
+   * Returns the retry interval multiplier for backoff retries.
+   * 
+   * @see #withBackoff(Duration, Duration, int)
+   */
   public int getRetryIntervalMultiplier() {
     return retryIntervalMultiplier;
   }

@@ -86,6 +86,9 @@ public class Config implements ConnectionConfig {
    * Sets the policy to use for handling {@link Connections#create(ConnectionOptions, Config)
    * connection attempt} errors. Overrides the {@link #withRetryPolicy(RetryPolicy) global retry
    * policy}.
+   * 
+   * @see #withConnectRetryPolicy(RetryPolicy)
+   * @see #withRetryPolicy(RetryPolicy)
    */
   public RetryPolicy getConnectRetryPolicy() {
     RetryPolicy result = connectRetryPolicy == null ? retryPolicy : connectRetryPolicy;
@@ -145,9 +148,9 @@ public class Config implements ConnectionConfig {
   }
 
   /**
-   * Sets the policy to use for handling {@link Connections#create(ConnectionOptions, Config)
-   * connection attempt} errors. Overrides the {@link #withRetryPolicy(RetryPolicy) global retry
-   * policy}.
+   * Sets the policy to use for handling initial
+   * {@link Connections#create(ConnectionOptions, Config) connection attempt} errors. Overrides the
+   * {@link #withRetryPolicy(RetryPolicy) global retry policy}.
    */
   public Config withConnectRetryPolicy(RetryPolicy connectRetryPolicy) {
     this.connectRetryPolicy = connectRetryPolicy;

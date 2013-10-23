@@ -15,7 +15,7 @@ public class Duration implements Serializable {
   private static final long serialVersionUID = 8408159221215361695L;
   /** A duration of Long.MAX_VALUE Days */
   public static final Duration INFINITE = new Duration();
-  static final Pattern PATTERN = Pattern.compile("[\\d]+[\\s]*(" + "ns|nanosecond(s)?|"
+  private static final Pattern PATTERN = Pattern.compile("[\\d]+[\\s]*(" + "ns|nanosecond(s)?|"
       + "us|microsecond(s)?|" + "ms|millisecond(s)?|" + "s|second(s)?|" + "m|minute(s)?|"
       + "h|hour(s)?|" + "d|day(s)?" + ')');
   private static final Map<String, TimeUnit> SUFFIXES;
@@ -67,76 +67,6 @@ public class Duration implements Serializable {
     this.length = length;
     this.timeUnit = Assert.notNull(timeUnit, "timeUnit");
     finite = length == Long.MAX_VALUE && TimeUnit.DAYS.equals(timeUnit) ? false : true;
-  }
-
-  public static Duration days(long count) {
-    return new Duration(count, TimeUnit.DAYS);
-  }
-
-  public static Duration hours(long count) {
-    return new Duration(count, TimeUnit.HOURS);
-  }
-
-  public static Duration inf() {
-    return INFINITE;
-  }
-
-  public static Duration infinite() {
-    return INFINITE;
-  }
-
-  public static Duration microseconds(long count) {
-    return new Duration(count, TimeUnit.MICROSECONDS);
-  }
-
-  public static Duration millis(long count) {
-    return new Duration(count, TimeUnit.MILLISECONDS);
-  }
-
-  public static Duration milliseconds(long count) {
-    return new Duration(count, TimeUnit.MILLISECONDS);
-  }
-
-  public static Duration mins(long count) {
-    return new Duration(count, TimeUnit.MINUTES);
-  }
-
-  public static Duration minutes(long count) {
-    return new Duration(count, TimeUnit.MINUTES);
-  }
-
-  public static Duration nanos(long count) {
-    return new Duration(count, TimeUnit.NANOSECONDS);
-  }
-
-  public static Duration nanoseconds(long count) {
-    return new Duration(count, TimeUnit.NANOSECONDS);
-  }
-
-  public static Duration of(long count, TimeUnit unit) {
-    return new Duration(count, unit);
-  }
-
-  /**
-   * Returns a Duration from the parsed {@code duration}.
-   */
-  public static Duration of(String duration) {
-    Assert.isTrue(PATTERN.matcher(duration).matches(), "Invalid duration: %s", duration);
-    int i = 0;
-    for (; i < duration.length(); i++)
-      if (Character.isLetter(duration.charAt(i)))
-        break;
-    String unit = duration.subSequence(0, i).toString().trim();
-    String dur = duration.subSequence(i, duration.length()).toString();
-    return new Duration(Long.parseLong(unit), SUFFIXES.get(dur));
-  }
-
-  public static Duration seconds(long count) {
-    return new Duration(count, TimeUnit.SECONDS);
-  }
-
-  public static Duration secs(long count) {
-    return new Duration(count, TimeUnit.SECONDS);
   }
 
   @Override
@@ -208,5 +138,124 @@ public class Duration implements Serializable {
     if (length == 1)
       units = units.substring(0, units.length() - 1);
     return Long.toString(length) + ' ' + units;
+  }
+
+  /**
+   * Returns a Duration of {@code count} days.
+   */
+  public static Duration days(long count) {
+    return new Duration(count, TimeUnit.DAYS);
+  }
+
+  /**
+   * Returns a Duration of {@code count} hours.
+   */
+  public static Duration hours(long count) {
+    return new Duration(count, TimeUnit.HOURS);
+  }
+
+  /**
+   * Returns an infinite duration of Long.MAX_VALUE days.
+   */
+  public static Duration inf() {
+    return INFINITE;
+  }
+
+  /**
+   * Returns an infinite duration of Long.MAX_VALUE days.
+   */
+  public static Duration infinite() {
+    return INFINITE;
+  }
+
+  /**
+   * Returns a Duration of {@code count} microseconds.
+   */
+  public static Duration microseconds(long count) {
+    return new Duration(count, TimeUnit.MICROSECONDS);
+  }
+
+  /**
+   * Returns a Duration of {@code count} milliseconds.
+   */
+  public static Duration millis(long count) {
+    return new Duration(count, TimeUnit.MILLISECONDS);
+  }
+
+  /**
+   * Returns a Duration of {@code count} milliseconds.
+   */
+  public static Duration milliseconds(long count) {
+    return new Duration(count, TimeUnit.MILLISECONDS);
+  }
+
+  /**
+   * Returns a Duration of {@code count} minutes.
+   */
+  public static Duration mins(long count) {
+    return new Duration(count, TimeUnit.MINUTES);
+  }
+
+  /**
+   * Returns a Duration of {@code count} minutes.
+   */
+  public static Duration minutes(long count) {
+    return new Duration(count, TimeUnit.MINUTES);
+  }
+
+  /**
+   * Returns a Duration of {@code count} nanoseconds.
+   */
+  public static Duration nanos(long count) {
+    return new Duration(count, TimeUnit.NANOSECONDS);
+  }
+
+  /**
+   * Returns a Duration of {@code count} nanoseconds.
+   */
+  public static Duration nanoseconds(long count) {
+    return new Duration(count, TimeUnit.NANOSECONDS);
+  }
+
+  /**
+   * Returns a Duration of {@code count} {@code unit}s.
+   */
+  public static Duration of(long count, TimeUnit unit) {
+    return new Duration(count, unit);
+  }
+
+  /**
+   * Returns a Duration from the parsed {@code duration}.
+   */
+  public static Duration of(String duration) {
+    Assert.isTrue(PATTERN.matcher(duration).matches(), "Invalid duration: %s", duration);
+    int i = 0;
+    for (; i < duration.length(); i++)
+      if (Character.isLetter(duration.charAt(i)))
+        break;
+    String unit = duration.subSequence(0, i).toString().trim();
+    String dur = duration.subSequence(i, duration.length()).toString();
+    return new Duration(Long.parseLong(unit), SUFFIXES.get(dur));
+  }
+
+  /**
+   * Returns a Duration of {@code count} seconds.
+   */
+  public static Duration seconds(long count) {
+    return new Duration(count, TimeUnit.SECONDS);
+  }
+
+  /**
+   * Returns a Duration of {@code count} seconds. Example:
+   * 
+   * <pre>
+   * 5 s
+   * 5 seconds
+   * 10m
+   * 10 minutes
+   * </pre>
+   */
+  public static Duration secs(long count) {
+    return new Duration(count, TimeUnit.SECONDS);
   }
 }

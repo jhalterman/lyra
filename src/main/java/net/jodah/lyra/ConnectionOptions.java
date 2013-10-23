@@ -69,6 +69,14 @@ public class ConnectionOptions {
     return new ConnectionOptions(this);
   }
 
+  /**
+   * Returns the addresses to attempt connections to, in round-robin order.
+   * 
+   * @see #withAddresses(Address...)
+   * @see #withAddresses(String)
+   * @see #withHost(String)
+   * @see #withHosts(String...)
+   */
   public Address[] getAddresses() {
     return addresses == null ? new Address[] { new Address(host, factory.getPort()) } : addresses;
   }
@@ -80,6 +88,11 @@ public class ConnectionOptions {
     return factory;
   }
 
+  /**
+   * Returns the consumer executor.
+   * 
+   * @see #withConsumerExecutor(ExecutorService)
+   */
   public ExecutorService getConsumerExecutor() {
     return executor;
   }

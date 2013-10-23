@@ -164,11 +164,11 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         public Channel call() throws Exception {
           log.info("Recovering {} ", ChannelHandler.this);
           Channel channel = connectionHandler.createChannel(delegate.getChannelNumber());
+          if (config.isConsumerRecoveryEnabled())
+            recoverConsumers(channel, consumers);
           migrateConfiguration(channel);
           for (ChannelListener listener : config.getChannelListeners())
             listener.onRecovery(proxy);
-          if (config.isConsumerRecoveryEnabled())
-            recoverConsumers(channel, consumers);
           circuit.close();
           return channel;
         }
@@ -226,15 +226,17 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         Consumer consumer = (Consumer) entry.getValue().args[entry.getValue().args.length - 1];
 
         try {
+          for (ConsumerListener listener : config.getConsumerListeners())
+            listener.onBeforeRecovery(consumer, proxy);
           log.info("Recovering consumer-{} via {}", entry.getKey(), this);
           Reflection.invoke(channel, entry.getValue().method, entry.getValue().args);
           for (ConsumerListener listener : config.getConsumerListeners())
-            listener.onRecovery(consumer);
+            listener.onAfterRecovery(consumer, proxy);
         } catch (Exception e) {
           ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
           log.error("Failed to recover consumer-{} via {}", entry.getKey(), this, e);
           for (ConsumerListener listener : config.getConsumerListeners())
-            listener.onRecoveryFailure(consumer, e);
+            listener.onRecoveryFailure(consumer, proxy, e);
           if (sse != null) {
             if (!Exceptions.isConnectionClosure(sse))
               consumers.remove(entry.getKey());

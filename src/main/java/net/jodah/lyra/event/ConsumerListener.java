@@ -1,5 +1,6 @@
 package net.jodah.lyra.event;
 
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Consumer;
 
 /**
@@ -9,12 +10,20 @@ import com.rabbitmq.client.Consumer;
  */
 public interface ConsumerListener {
   /**
-   * Called after the {@code consumer} is recovered from an unexpected closure.
+   * Called before the {@code consumer} is recovered from an unexpected closure on the
+   * {@code channel}.
    */
-  void onRecovery(Consumer consumer);
+  void onBeforeRecovery(Consumer consumer, Channel channel);
 
   /**
-   * Called after the {@code consumer} fails to recover from an unexpected closure.
+   * Called after the {@code consumer} is recovered from an unexpected closure on the
+   * {@code channel}.
    */
-  void onRecoveryFailure(Consumer consumer, Throwable failure);
+  void onAfterRecovery(Consumer consumer, Channel channel);
+
+  /**
+   * Called after the {@code consumer} fails to recover from an unexpected closure on the
+   * {@code channel}.
+   */
+  void onRecoveryFailure(Consumer consumer, Channel channel, Throwable failure);
 }
