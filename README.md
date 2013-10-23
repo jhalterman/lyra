@@ -30,10 +30,10 @@ Add the lyra dependency:
 Also add the latest [amqp-client] dependency:
 
 ```xml
-<dependency>xml
+<dependency>
   <groupId>com.rabbitmq</groupId>
   <artifactId>amqp-client</artifactId>
-  <version>CURRENT-VERSION</version>
+  <version>3.1.4</version>
 </dependency>
 ```
 
@@ -115,10 +115,10 @@ Configurable connections and channels can be used the same as regular connection
 
 [Recovery / Retry policies](http://jodah.net/lyra/javadoc/net/jodah/lyra/retry/RetryPolicy.html) allow you to specify:
 
-* The maximum number of retry attempts to perform
-* The maxmimum duration that retries should be performed for
-* The standard interval between retry attempts
-* The maximum interval between retries to exponentially backoff to
+* The maximum number of attempts to perform
+* The maxmimum duration that attempts should be performed for
+* The standard interval between attempts
+* The maximum interval between attempts to exponentially backoff to
 
 Lyra allows for Recovery / Retry policies to be set globally or for individual resource types, as well as for initial connection attempts.
 
