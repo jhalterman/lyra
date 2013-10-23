@@ -159,20 +159,21 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         : new HashMap<String, Invocation>(consumerInvocations);
 
     try {
-      delegate = callWithRetries(new Callable<Channel>() {
+      callWithRetries(new Callable<Channel>() {
         @Override
         public Channel call() throws Exception {
           log.info("Recovering {} ", ChannelHandler.this);
           Channel channel = connectionHandler.createChannel(delegate.getChannelNumber());
+          migrateConfiguration(channel);
+          delegate = channel;
           if (config.isConsumerRecoveryEnabled())
             recoverConsumers(channel, consumers);
-          migrateConfiguration(channel);
-          for (ChannelListener listener : config.getChannelListeners())
-            listener.onRecovery(proxy);
           circuit.close();
           return channel;
         }
       }, config.getChannelRecoveryPolicy(), true, false);
+      for (ChannelListener listener : config.getChannelListeners())
+        listener.onRecovery(proxy);
       return RecoveryResult.Succeeded;
     } catch (Exception e) {
       log.error("Failed to recover {}", this, e);
