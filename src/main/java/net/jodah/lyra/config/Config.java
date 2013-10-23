@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import net.jodah.lyra.ConnectionOptions;
 import net.jodah.lyra.Connections;
 import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConnectionListener;
@@ -82,8 +83,9 @@ public class Config implements ConnectionConfig {
   }
 
   /**
-   * Sets the policy to use for handling {@link Connections#create(Options, Config) connection
-   * attempt} errors. Overrides the {@link #withRetryPolicy(RetryPolicy) global retry policy}.
+   * Sets the policy to use for handling {@link Connections#create(ConnectionOptions, Config)
+   * connection attempt} errors. Overrides the {@link #withRetryPolicy(RetryPolicy) global retry
+   * policy}.
    */
   public RetryPolicy getConnectRetryPolicy() {
     RetryPolicy result = connectRetryPolicy == null ? retryPolicy : connectRetryPolicy;
@@ -143,8 +145,9 @@ public class Config implements ConnectionConfig {
   }
 
   /**
-   * Sets the policy to use for handling {@link Connections#create(Options, Config) connection
-   * attempt} errors. Overrides the {@link #withRetryPolicy(RetryPolicy) global retry policy}.
+   * Sets the policy to use for handling {@link Connections#create(ConnectionOptions, Config)
+   * connection attempt} errors. Overrides the {@link #withRetryPolicy(RetryPolicy) global retry
+   * policy}.
    */
   public Config withConnectRetryPolicy(RetryPolicy connectRetryPolicy) {
     this.connectRetryPolicy = connectRetryPolicy;
@@ -175,9 +178,9 @@ public class Config implements ConnectionConfig {
   }
 
   /**
-   * Sets the policy to use for handling {@link Connections#create(Options) connection attempt},
-   * {@link Connection} invocation, and {@link Channel} invocation errors. Can be overridden with
-   * specific policies via {@link #withConnectRetryPolicy(RetryPolicy)},
+   * Sets the policy to use for handling {@link Connections#create(ConnectionOptions, Config)
+   * connection attempt}, {@link Connection} invocation, and {@link Channel} invocation errors. Can
+   * be overridden with specific policies via {@link #withConnectRetryPolicy(RetryPolicy)},
    * {@link #withConnectionRetryPolicy(RetryPolicy)}, and
    * {@link #withChannelRetryPolicy(RetryPolicy)}.
    */
