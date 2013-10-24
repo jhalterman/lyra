@@ -14,7 +14,9 @@ import net.jodah.lyra.util.Duration;
 import org.testng.annotations.Test;
 
 /**
- * Tests failures that occur as the result of a connection invocation.
+ * Tests failures that occur as the result of a connection invocation. The general structure of
+ * these tests is to mock some resources, perform some failing invocation, then assert that the
+ * expected number of resource creations and invocation retries occurred.
  * 
  * @author Jonathan Halterman
  */

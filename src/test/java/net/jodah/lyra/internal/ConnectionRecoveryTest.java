@@ -8,7 +8,9 @@ import java.io.IOException;
 import org.testng.annotations.Test;
 
 /**
- * Tests connection recovery failures that occur via a connection's ShutdownListener.
+ * Tests connection recovery failures that occur via a connection's ShutdownListener. The general
+ * structure of these tests is to mock some resources, trigger a recovery, then assert that the
+ * expected number of resource creations occurred.
  * 
  * @author Jonathan Halterman
  */

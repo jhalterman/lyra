@@ -17,7 +17,9 @@ import org.jodah.concurrentunit.Waiter;
 import org.testng.annotations.Test;
 
 /**
- * Tests failures that occur as the result of a channel invocation.
+ * Tests failures that occur as the result of a channel invocation. The general structure of these
+ * tests is to mock some resources, perform some failing invocation, then assert that the expected
+ * number of resource creations and invocation retries occurred.
  * 
  * @author Jonathan Halterman
  */
