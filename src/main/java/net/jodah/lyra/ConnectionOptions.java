@@ -102,7 +102,7 @@ public class ConnectionOptions {
   }
 
   /**
-   * Sets the {@code addresses}.
+   * Sets the {@code addresses} to attempt connections to, in round-robin order.
    * 
    * @throws NullPointerException if {@code addresses} is null
    */
@@ -175,7 +175,7 @@ public class ConnectionOptions {
   }
 
   /**
-   * Sets the {@code hosts}.
+   * Sets the {@code hosts} to attempt connections to, in round-robin order.
    * 
    * @throws NullPointerException if {@code hosts} is null
    */

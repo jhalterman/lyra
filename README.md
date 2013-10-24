@@ -4,20 +4,11 @@
 
 ## Introduction
 
-Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that helps you achieve high availability in your services by embracing failure, allowing for AMQP resources such as connections, channels and consumers to be automatically recovered when server or network failures occur.
-
-#### Features
-
-* Automatic resource recovery
-* Automatic invocation retries
-* Event listeners
-* Flexible configuration
+Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources such as connections, channels and consumers when server or network failures occur. Lyra also supports automatic invocation retries, and exposes a simple, lightweight API built around the [Java AMQP client](http://www.rabbitmq.com/java-client.html) library.
 
 ## Setup
 
-`mvn install`
-
-Add the lyra dependency:
+Add the Lyra dependency:
 
 ```xml
 <dependency>
@@ -54,7 +45,9 @@ Config config = new Config()
 With our `config`, let's create a *recoverable* Connection along with some Channels and Consumers:
 
 ```java
-Connection connection = Connections.create(config);
+ConnectionOptions options = new ConnectionOptions()
+	.withHost("localhost");
+Connection connection = Connections.create(options, config);
 Channel channel1 = connection.createChannel(1);
 Channel channel2 = connection.createChannel(2);
 channel1.basicConsume("foo-queue", consumer1);
@@ -74,18 +67,29 @@ If the Connection is unexpectedly closed, Lyra will attempt to recover it along 
 Lyra also supports invocation retries when a *retryable* failure occurs while creating a Connection or invoking a method against a [Connection] or [Channel]. For example:
 
 ```java
+ConnectionOptions options = new ConnectionOptions()
+	.withHost("localhost");
 Config config = new Config()
 	.withRecoveryPolicy(RetryPolicies.retryAlways())
 	.withRetryPolicy(new RetryPolicy()
 		.withBackoff(Duration.seconds(1), Duration.seconds(30))
 		.withMaxDuration(Duration.minutes(10)));
 		
-Connection connection = Connections.create(config);
+Connection connection = Connections.create(options, config);
 Channel channel = connection.createChannel();
 channel.basicConsume("foo-queue", myConsumer);
 ```
 
 Here we've created a new `Connection` and `Channel`, specifying a recovery policy to use in case any of our resources are *unexpectedly* closed as a result of an invocation failure, and a retry policy that dictates how and when the failed method invocation should be retried. If the `Connections.create()`, `connection.createChannel()`, or `channel.basicConsume()` method invocations fail as the result of a *retryable* error, Lyra will attempt to recover any resources that were closed according to the recovery policy and retry the invocation according to the retry policy.
+
+#### Resource Configuration
+
+Lyra allows for resource configuration to be applied at different levels. For example, [global recovery][global-recovery] and [global retry][global-retry] policies can be configured for all resources. These policies can be overriden with specific policies for [connection attempts][connect-retry], [connections][connection-config], [channels][channel-config] and [consumers][consumer-config]. Lyra also allows for individual connections and channels to be re-configured after creation:
+
+```java
+ConfigurableConnection configurableConnection = Config.of(connection);
+ConfigurableChannel configurableChannel = Config.of(channel);
+```
 
 #### Event Listeners
 
@@ -99,17 +103,6 @@ Config config = new Config();
 ```
 
 Event listeners can be useful for setting up additional resources during recovery, such as auto-deleted exchanges and queues.
-
-#### Resource Configuration
-
-Resources created through Lyra can be re-configured after creation:
-
-```java
-ConfigurableConnection configurableConnection = Config.of(connection);
-ConfigurableChannel configurableChannel = Config.of(channel);
-```
-
-Configurable connections and channels can be used the same as regular connections and channels, but expose additional configuration that overrides any configuration that was present when the resource was created.
 
 ## Additional Notes
 
@@ -150,3 +143,9 @@ Copyright 2013 Jonathan Halterman - Released under the [Apache 2.0 license](http
 [Consumer]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Consumer.html
 [amqp-client]: http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22amqp-client%22
 [before-consumer-recovery]: http://jodah.net/lyra/javadoc/net/jodah/lyra/event/ConsumerListener.html#onBeforeRecovery(com.rabbitmq.client.Consumer%2C%20com.rabbitmq.client.Channel)
+[connect-retry]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withConnectRetryPolicy(net.jodah.lyra.retry.RetryPolicy)
+[global-recovery]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withRecoveryPolicy(net.jodah.lyra.retry.RetryPolicy)
+[global-retry]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withRetryPolicy(net.jodah.lyra.retry.RetryPolicy)
+[connection-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ConnectionConfig.html
+[channel-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ChannelConfig.html
+[consumer-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ConsumerConfig.html
