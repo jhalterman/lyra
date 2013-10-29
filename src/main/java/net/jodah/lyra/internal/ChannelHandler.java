@@ -51,7 +51,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   @Override
   public Object invoke(Object ignored, final Method method, final Object[] args) throws Throwable {
-    if (closed && ChannelConfig.class.equals(method.getDeclaringClass()))
+    if (closed && Channel.class.equals(method.getDeclaringClass()))
       throw new AlreadyClosedException("Attempt to use closed channel", proxy);
 
     return handleCommonMethods(delegate, method, args) ? null : callWithRetries(
