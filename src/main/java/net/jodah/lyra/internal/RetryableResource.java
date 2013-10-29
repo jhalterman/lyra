@@ -57,7 +57,7 @@ abstract class RetryableResource {
       try {
         return callable.call();
       } catch (Exception e) {
-        if (logFailures)
+        if (logFailures && retryPolicy != null && retryPolicy.allowsRetries())
           log.error("Invocation of {} failed.", callable, e);
 
         ShutdownSignalException sse = extractCause(e, ShutdownSignalException.class);
