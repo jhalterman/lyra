@@ -40,6 +40,7 @@ public class ConnectionOptions {
    */
   public ConnectionOptions(ConnectionFactory connectionFactory) {
     this.factory = Assert.notNull(connectionFactory, "connectionFactory");
+    withHost(factory.getHost());
   }
 
   private ConnectionOptions(ConnectionOptions options) {
