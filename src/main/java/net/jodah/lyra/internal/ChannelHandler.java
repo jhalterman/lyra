@@ -51,65 +51,65 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   @Override
   public Object invoke(Object ignored, final Method method, final Object[] args) throws Throwable {
-    if (closed)
+    if (closed && ChannelConfig.class.equals(method.getDeclaringClass()))
       throw new AlreadyClosedException("Attempt to use closed channel", proxy);
-    handleCommonMethods(delegate, method, args);
 
-    return callWithRetries(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        if (ChannelConfig.class.equals(method.getDeclaringClass()))
-          return Reflection.invoke(config, method, args);
+    return handleCommonMethods(delegate, method, args) ? null : callWithRetries(
+        new Callable<Object>() {
+          @Override
+          public Object call() throws Exception {
+            if (ChannelConfig.class.equals(method.getDeclaringClass()))
+              return Reflection.invoke(config, method, args);
 
-        String methodName = method.getName();
-        if ("basicCancel".equals(methodName) && args[0] != null)
-          consumerInvocations.remove((String) args[0]);
+            String methodName = method.getName();
+            if ("basicCancel".equals(methodName) && args[0] != null)
+              consumerInvocations.remove((String) args[0]);
 
-        Object result = Reflection.invoke(delegate, method, args);
+            Object result = Reflection.invoke(delegate, method, args);
 
-        if ("basicConsume".equals(methodName)) {
-          // Replace actual consumerTag
-          if (args.length > 3)
-            args[2] = result;
-          consumerInvocations.put((String) result, new Invocation(method, args));
-          log.info("Created consumer-{} of {} via {}", result, args[0], ChannelHandler.this);
-        } else if ("flow".equals(methodName))
-          flowDisabled = !(Boolean) args[0];
-        else if ("basicQos".equals(methodName)) {
-          // Store non-global Qos
-          if (args.length < 3 || !(Boolean) args[2])
-            basicQos = new Invocation(method, args);
-        } else if ("confirmSelect".equals(methodName))
-          confirmSelect = true;
-        else if ("txSelect".equals(methodName))
-          txSelect = true;
-        else if ("addConfirmListener".equals(methodName))
-          confirmListeners.add((ConfirmListener) args[0]);
-        else if ("addFlowListener".equals(methodName))
-          flowListeners.add((FlowListener) args[0]);
-        else if ("addReturnListener".equals(methodName))
-          returnListeners.add((ReturnListener) args[0]);
-        else if ("removeConfirmListener".equals(methodName))
-          confirmListeners.remove((ConfirmListener) args[0]);
-        else if ("removeFlowListener".equals(methodName))
-          flowListeners.remove((FlowListener) args[0]);
-        else if ("removeReturnListener".equals(methodName))
-          returnListeners.remove((ReturnListener) args[0]);
-        else if ("clearConfirmListeners".equals(methodName))
-          confirmListeners.clear();
-        else if ("clearFlowListeners".equals(methodName))
-          flowListeners.clear();
-        else if ("clearReturnListeners".equals(methodName))
-          returnListeners.clear();
+            if ("basicConsume".equals(methodName)) {
+              // Replace actual consumerTag
+              if (args.length > 3)
+                args[2] = result;
+              consumerInvocations.put((String) result, new Invocation(method, args));
+              log.info("Created consumer-{} of {} via {}", result, args[0], ChannelHandler.this);
+            } else if ("flow".equals(methodName))
+              flowDisabled = !(Boolean) args[0];
+            else if ("basicQos".equals(methodName)) {
+              // Store non-global Qos
+              if (args.length < 3 || !(Boolean) args[2])
+                basicQos = new Invocation(method, args);
+            } else if ("confirmSelect".equals(methodName))
+              confirmSelect = true;
+            else if ("txSelect".equals(methodName))
+              txSelect = true;
+            else if ("addConfirmListener".equals(methodName))
+              confirmListeners.add((ConfirmListener) args[0]);
+            else if ("addFlowListener".equals(methodName))
+              flowListeners.add((FlowListener) args[0]);
+            else if ("addReturnListener".equals(methodName))
+              returnListeners.add((ReturnListener) args[0]);
+            else if ("removeConfirmListener".equals(methodName))
+              confirmListeners.remove((ConfirmListener) args[0]);
+            else if ("removeFlowListener".equals(methodName))
+              flowListeners.remove((FlowListener) args[0]);
+            else if ("removeReturnListener".equals(methodName))
+              returnListeners.remove((ReturnListener) args[0]);
+            else if ("clearConfirmListeners".equals(methodName))
+              confirmListeners.clear();
+            else if ("clearFlowListeners".equals(methodName))
+              flowListeners.clear();
+            else if ("clearReturnListeners".equals(methodName))
+              returnListeners.clear();
 
-        return result;
-      }
+            return result;
+          }
 
-      @Override
-      public String toString() {
-        return Reflection.toString(method);
-      }
-    }, config.getChannelRetryPolicy(), false, true);
+          @Override
+          public String toString() {
+            return Reflection.toString(method);
+          }
+        }, config.getChannelRetryPolicy(), false, true);
   }
 
   @Override

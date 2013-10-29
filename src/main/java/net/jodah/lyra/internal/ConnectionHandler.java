@@ -100,7 +100,8 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
 
   @Override
   public Object invoke(Object ignored, final Method method, final Object[] args) throws Throwable {
-    handleCommonMethods(delegate, method, args);
+    if (handleCommonMethods(delegate, method, args))
+      return null;
 
     try {
       return callWithRetries(new Callable<Object>() {
