@@ -71,6 +71,8 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
               // Replace actual consumerTag
               if (args.length > 3)
                 args[2] = result;
+              Consumer consumer = (Consumer) args[args.length - 1];
+              args[args.length - 1] = new ConsumerDelegate(consumer);
               consumerInvocations.put((String) result, new Invocation(method, args));
               log.info("Created consumer-{} of {} via {}", result, args[0], ChannelHandler.this);
             } else if ("flow".equals(methodName))
