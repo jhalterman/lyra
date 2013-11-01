@@ -38,7 +38,7 @@ The key feature of Lyra is its ability to automatically recover resources such a
 Config config = new Config()
 	.withRecoveryPolicy(new RetryPolicy()
 		.withMaxRetries(100)
-		.withInterval(Duration.seconds(1))
+		.withRetryInterval(Duration.seconds(1))
 		.withMaxDuration(Duration.minutes(5)));
 ```
 
