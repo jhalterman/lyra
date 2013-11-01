@@ -1,5 +1,6 @@
 package net.jodah.lyra.internal;
 
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
@@ -10,7 +11,8 @@ import static org.testng.Assert.assertTrue;
 import java.io.IOException;
 
 import net.jodah.lyra.config.Config;
-import net.jodah.lyra.retry.RetryPolicies;
+import net.jodah.lyra.convention.RecoveryPolicies;
+import net.jodah.lyra.convention.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
 import org.jodah.concurrentunit.Waiter;
@@ -26,7 +28,7 @@ import org.testng.annotations.Test;
 @Test(groups = "functional")
 public class ChannelInvocationTest extends AbstractInvocationTest {
   /**
-   * Asserts that a retryable channel closure on a channel invocation results in the channel being
+   * Asserts that a retryable channel shutdown on a channel invocation results in the channel being
    * recovered and the invocation being retried.
    */
   public void shouldHandleRetryableChannelClosure() throws Throwable {
@@ -42,22 +44,19 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
   }
 
   /**
-   * Asserts that a retryable channel closure on a channel invocation that fails with a recovery
-   * that suffers a connection failure has the failure rethrown.
-   * 
-   * TODO In the future we'd like the invocation to be retried.
+   * Asserts that a retryable channel shutdown on a channel invocation that fails with a recovery
+   * that result in a connection shutdown results in the invocation being retried.
    */
   public void shouldHandleRetryableChannelClosureWithRetryableRecoveryFailure() throws Throwable {
-    performThrowableInvocation(retryableChannelShutdownSignal(),
-        retryableConnectionShutdownSignal());
+    performInvocation(retryableChannelShutdownSignal(), retryableConnectionShutdownSignal());
     verifyCxnCreations(3);
-    verifyChannelCreations(1, 4);
+    verifyChannelCreations(1, 5);
     verifyChannelCreations(2, 2);
-    verifyConsumerCreations(1, 1, 4);
-    verifyConsumerCreations(1, 2, 2);
+    verifyConsumerCreations(1, 1, 5);
+    verifyConsumerCreations(1, 2, 3);
     verifyConsumerCreations(2, 5, 2);
     verifyConsumerCreations(2, 6, 2);
-    verifyInvocations(1);
+    verifyInvocations(3);
   }
 
   /**
@@ -130,7 +129,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnChannelShutdownWithNoRetryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryNever()).withRecoveryPolicy(
-        RetryPolicies.retryAlways());
+        RecoveryPolicies.recoverAlways());
     performThrowableInvocation(retryableChannelShutdownSignal());
 
     // Assert that the channel is recovered asynchronously
@@ -151,7 +150,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnChannelShutdownWithNoRecoveryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryAlways()).withRecoveryPolicy(
-        RetryPolicies.retryNever());
+        RecoveryPolicies.recoverNever());
     performThrowableInvocation(retryableChannelShutdownSignal());
     verifySingleInvocation();
   }
@@ -162,7 +161,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnConnectionShutdownWithNoRetryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryNever()).withRecoveryPolicy(
-        RetryPolicies.retryAlways());
+        RecoveryPolicies.recoverAlways());
     performThrowableInvocation(retryableConnectionShutdownSignal());
 
     // Assert that the channel is recovered asynchronously
@@ -183,7 +182,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnConnectionShutdownWithNoRecoveryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryAlways()).withRecoveryPolicy(
-        RetryPolicies.retryNever());
+        RecoveryPolicies.recoverNever());
     performThrowableInvocation(retryableConnectionShutdownSignal());
     verifySingleInvocation();
   }
@@ -194,8 +193,8 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnConnectionShutdownWithNoCxnRecoveryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryAlways())
-        .withConnectionRecoveryPolicy(RetryPolicies.retryNever())
-        .withChannelRecoveryPolicy(RetryPolicies.retryAlways());
+        .withConnectionRecoveryPolicy(RecoveryPolicies.recoverNever())
+        .withChannelRecoveryPolicy(RecoveryPolicies.recoverAlways());
     performThrowableInvocation(retryableConnectionShutdownSignal());
     verifySingleInvocation();
   }
@@ -206,8 +205,8 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnConnectionShutdownWithNoChannelRecoveryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryAlways())
-        .withConnectionRecoveryPolicy(RetryPolicies.retryAlways())
-        .withChannelRecoveryPolicy(RetryPolicies.retryNever());
+        .withConnectionRecoveryPolicy(RecoveryPolicies.recoverAlways())
+        .withChannelRecoveryPolicy(RecoveryPolicies.recoverNever());
     performThrowableInvocation(retryableConnectionShutdownSignal());
     verifyCxnCreations(2);
     verifyChannelCreations(1, 1);
@@ -230,7 +229,8 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
     mockConsumer(2, 5);
     mockConsumer(2, 6);
 
-    doAnswer(failNTimes(4, retryableChannelShutdownSignal(), null)).when(mockChannel(1).delegate)
+    doAnswer(failNTimes(4, retryableChannelShutdownSignal(), null, mockChannel(1).channelHandler)).when(
+        mockChannel(1).delegate)
         .basicCancel("foo-tag");
 
     final Waiter waiter = new Waiter();
@@ -267,13 +267,16 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
     mockConsumer(2, 5);
     mockConsumer(2, 6);
 
-    doAnswer(failNTimes(2, e, null)).when(mockChannel(1).delegate).basicCancel("foo-tag");
+    doAnswer(failNTimes(2, e, null, mockChannel(1).channelHandler)).when(mockChannel(1).delegate)
+        .basicCancel("foo-tag");
   }
 
   @Override
   protected void mockRecovery(Exception e) throws IOException {
-    when(mockChannel(1).delegate.basicConsume(eq("test-queue"), eq(mockConsumer(1, 1)))).thenAnswer(
-        failNTimes(2, e, "test-tag"));
+    when(
+        mockChannel(1).delegate.basicConsume(eq("test-queue"),
+            argThat(matcherFor(mockConsumer(1, 1))))).thenAnswer(
+        failNTimes(2, e, "test-tag", mockChannel(1).channelHandler));
   }
 
   @Override

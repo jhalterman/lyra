@@ -11,7 +11,6 @@ import javax.net.ssl.TrustManager;
 
 import net.jodah.lyra.internal.util.Addresses;
 import net.jodah.lyra.internal.util.Assert;
-import net.jodah.lyra.retry.RetryPolicy;
 import net.jodah.lyra.util.Duration;
 
 import com.rabbitmq.client.Address;
@@ -108,7 +107,7 @@ public class ConnectionOptions {
    * @throws NullPointerException if {@code addresses} is null
    */
   public ConnectionOptions withAddresses(Address... addresses) {
-    addresses = Assert.notNull(addresses, "addresses");
+    this.addresses = Assert.notNull(addresses, "addresses");
     return this;
   }
 
@@ -144,8 +143,7 @@ public class ConnectionOptions {
   }
 
   /**
-   * Set the connection timeout, zero for infinite, for an individual connection attempt. Overrides
-   * the {@link #withRecoveryPolicy(RetryPolicy) global recovery policy}.
+   * Set the connection timeout, zero for infinite, for an individual connection attempt.
    * 
    * @throws NullPointerException if {@code connectionTimeout} is null
    */

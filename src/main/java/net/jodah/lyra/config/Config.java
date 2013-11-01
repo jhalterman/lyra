@@ -10,7 +10,6 @@ import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConnectionListener;
 import net.jodah.lyra.event.ConsumerListener;
 import net.jodah.lyra.internal.util.Assert;
-import net.jodah.lyra.retry.RetryPolicy;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -23,11 +22,11 @@ import com.rabbitmq.client.Connection;
 public class Config implements ConnectionConfig {
   private final Config parent;
   private RetryPolicy retryPolicy;
-  private RetryPolicy recoveryPolicy;
+  private RecoveryPolicy recoveryPolicy;
   private RetryPolicy connectRetryPolicy;
-  private RetryPolicy connectionRecoveryPolicy;
+  private RecoveryPolicy connectionRecoveryPolicy;
   private RetryPolicy connectionRetryPolicy;
-  private RetryPolicy channelRecoveryPolicy;
+  private RecoveryPolicy channelRecoveryPolicy;
   private RetryPolicy channelRetryPolicy;
   private Boolean consumerRecovery;
   private Collection<ConnectionListener> connectionListeners;
@@ -52,8 +51,8 @@ public class Config implements ConnectionConfig {
   }
 
   @Override
-  public RetryPolicy getChannelRecoveryPolicy() {
-    RetryPolicy result = channelRecoveryPolicy == null ? recoveryPolicy : channelRecoveryPolicy;
+  public RecoveryPolicy getChannelRecoveryPolicy() {
+    RecoveryPolicy result = channelRecoveryPolicy == null ? recoveryPolicy : channelRecoveryPolicy;
     return result != null ? result : parent != null ? parent.getChannelRecoveryPolicy() : null;
   }
 
@@ -71,8 +70,8 @@ public class Config implements ConnectionConfig {
   }
 
   @Override
-  public RetryPolicy getConnectionRecoveryPolicy() {
-    RetryPolicy result = connectionRecoveryPolicy == null ? recoveryPolicy
+  public RecoveryPolicy getConnectionRecoveryPolicy() {
+    RecoveryPolicy result = connectionRecoveryPolicy == null ? recoveryPolicy
         : connectionRecoveryPolicy;
     return result != null ? result : parent != null ? parent.getConnectionRecoveryPolicy() : null;
   }
@@ -109,8 +108,8 @@ public class Config implements ConnectionConfig {
     if (result != null)
       return result;
 
-    RetryPolicy policy = getChannelRecoveryPolicy();
-    return policy != null && policy.allowsRetries();
+    RecoveryPolicy policy = getChannelRecoveryPolicy();
+    return policy != null && policy.allowsAttempts();
   }
 
   @Override
@@ -120,7 +119,7 @@ public class Config implements ConnectionConfig {
   }
 
   @Override
-  public Config withChannelRecoveryPolicy(RetryPolicy channelRecoveryPolicy) {
+  public Config withChannelRecoveryPolicy(RecoveryPolicy channelRecoveryPolicy) {
     this.channelRecoveryPolicy = channelRecoveryPolicy;
     return this;
   }
@@ -138,7 +137,7 @@ public class Config implements ConnectionConfig {
   }
 
   @Override
-  public Config withConnectionRecoveryPolicy(RetryPolicy connectionRecoveryPolicy) {
+  public Config withConnectionRecoveryPolicy(RecoveryPolicy connectionRecoveryPolicy) {
     this.connectionRecoveryPolicy = connectionRecoveryPolicy;
     return this;
   }
@@ -174,10 +173,10 @@ public class Config implements ConnectionConfig {
   /**
    * Sets the policy to use for the recovery of Connections/Channels/Consumers after an unexpected
    * Connection/Channel closure. Can be overridden with specific policies via
-   * {@link #withConnectionRecoveryPolicy(RetryPolicy)} and
-   * {@link #withChannelRecoveryPolicy(RetryPolicy)}.
+   * {@link #withConnectionRecoveryPolicy(RecoveryPolicy)} and
+   * {@link #withChannelRecoveryPolicy(RecoveryPolicy)}.
    */
-  public Config withRecoveryPolicy(RetryPolicy recoveryPolicy) {
+  public Config withRecoveryPolicy(RecoveryPolicy recoveryPolicy) {
     this.recoveryPolicy = recoveryPolicy;
     return this;
   }

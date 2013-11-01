@@ -8,7 +8,8 @@ import static org.testng.Assert.assertTrue;
 import java.io.IOException;
 
 import net.jodah.lyra.config.Config;
-import net.jodah.lyra.retry.RetryPolicies;
+import net.jodah.lyra.convention.RecoveryPolicies;
+import net.jodah.lyra.convention.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
 import org.testng.annotations.Test;
@@ -60,7 +61,7 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowImmediatelyOnInvocationFailureWithNoRetryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryNever()).withRecoveryPolicy(
-        RetryPolicies.retryAlways());
+        RecoveryPolicies.recoverAlways());
     performThrowableInvocation(retryableConnectionShutdownSignal());
 
     // Assert that the connection is recovered asynchronously
@@ -81,7 +82,7 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnInvocationFailureWithNoRecoveryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryAlways()).withRecoveryPolicy(
-        RetryPolicies.retryNever());
+        RecoveryPolicies.recoverNever());
     performThrowableInvocation(retryableConnectionShutdownSignal());
     verifyCxnCreations(1);
     verifyChannelCreations(1, 1);
@@ -100,7 +101,8 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
     mockConsumer(2, 5);
     mockConsumer(2, 6);
 
-    when(connection.createChannel()).thenAnswer(failNTimes(2, e, mockChannel(2).delegate));
+    when(connection.createChannel()).thenAnswer(
+        failNTimes(2, e, mockChannel(2).delegate, connectionHandler));
   }
 
   @Override

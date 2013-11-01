@@ -84,50 +84,86 @@ public class Duration implements Serializable {
     return (31 * (int) (length ^ (length >>> 32))) + timeUnit.hashCode();
   }
 
+  /**
+   * Returns the Duration converted to days.
+   */
   public long toDays() {
     return TimeUnit.DAYS.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to hours.
+   */
   public long toHours() {
     return TimeUnit.HOURS.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to microseconds.
+   */
   public long toMicros() {
     return TimeUnit.MICROSECONDS.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to microseconds.
+   */
   public long toMicroseconds() {
     return TimeUnit.MICROSECONDS.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to milliseconds.
+   */
   public long toMillis() {
     return TimeUnit.MILLISECONDS.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to milliseconds.
+   */
   public long toMilliseconds() {
     return TimeUnit.MILLISECONDS.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to minutes.
+   */
   public long toMins() {
     return TimeUnit.MINUTES.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to minutes.
+   */
   public long toMinutes() {
     return TimeUnit.MINUTES.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to nanoseconds.
+   */
   public long toNanos() {
     return TimeUnit.NANOSECONDS.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to nanoseconds.
+   */
   public long toNanoseconds() {
     return TimeUnit.NANOSECONDS.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to seconds.
+   */
   public long toSeconds() {
     return TimeUnit.SECONDS.convert(length, timeUnit);
   }
 
+  /**
+   * Returns the Duration converted to seconds.
+   */
   public long toSecs() {
     return TimeUnit.SECONDS.convert(length, timeUnit);
   }

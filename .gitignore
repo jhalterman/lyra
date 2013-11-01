@@ -6,3 +6,5 @@
 target/
 test-output/
 docs/
+.idea/
+*.iml
