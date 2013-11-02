@@ -126,7 +126,7 @@ public class RetryPolicy {
   }
 
   /**
-   * Sets the max retries to perform. -1 indicates to always retry.
+   * Sets the max retries to perform. -1 indicates to always retry. 0 indicates to never retry.
    */
   public RetryPolicy withMaxRetries(int maxRetries) {
     this.maxRetries = maxRetries;

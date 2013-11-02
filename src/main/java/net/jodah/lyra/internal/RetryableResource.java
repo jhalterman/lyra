@@ -1,7 +1,6 @@
 package net.jodah.lyra.internal;
 
 import static net.jodah.lyra.internal.util.Exceptions.extractCause;
-import static net.jodah.lyra.internal.util.Exceptions.isConnectionClosure;
 import static net.jodah.lyra.internal.util.Exceptions.isRetryable;
 
 import java.lang.reflect.Method;
@@ -33,60 +32,37 @@ abstract class RetryableResource {
   final List<ShutdownListener> shutdownListeners = Collections.synchronizedList();
   volatile boolean closed;
 
-  enum RecoveryResult {
-    Succeeded, Failed, Pending
-  }
-
   void afterClosure() {
   }
 
   /**
    * Calls the {@code callable} with retries, throwing a failure if retries are exhausted.
    */
-  <T> T callWithRetries(Callable<T> callable, RetryPolicy retryPolicy, boolean recovery,
-      boolean logFailures) throws Exception {
-    RetryStats retryStats = null;
-    if (recovery) {
-      if (retryPolicy == null || !retryPolicy.allowsRetries())
-        return null;
-      retryStats = new RetryStats(retryPolicy);
-      retryStats.canRetryForUpdatedStats();
-    }
+  <T> T callWithRetries(Callable<T> callable, RetryPolicy retryPolicy, RetryStats retryStats,
+      boolean recoverable, boolean logFailures) throws Exception {
+    boolean recovery = retryStats != null;
 
     while (true) {
       try {
         return callable.call();
       } catch (Exception e) {
-        if (logFailures && retryPolicy != null && retryPolicy.allowsRetries())
+        ShutdownSignalException sse = extractCause(e, ShutdownSignalException.class);
+        if (sse == null && logFailures && retryPolicy != null && retryPolicy.allowsRetries())
           log.error("Invocation of {} failed.", callable, e);
 
-        ShutdownSignalException sse = extractCause(e, ShutdownSignalException.class);
-        boolean connectionClosure = sse != null && isConnectionClosure(sse);
-        boolean channelClosure = sse != null && !connectionClosure;
-
-        if (sse != null) {
-          if (channelClosure)
-            circuit.open();
-          if ((recovery && connectionClosure) || !canRecover(connectionClosure))
-            throw e;
-        }
+        if (sse != null && (recovery || !recoverable))
+          throw e;
 
         if (!closed) {
           try {
             // Retry on channel recovery failure or retryable exception
             boolean retryable = retryPolicy != null && retryPolicy.allowsRetries()
-                && ((recovery && channelClosure) || isRetryable(e, sse));
+                && isRetryable(e, sse);
             long startTime = System.nanoTime();
 
-            // Recover channel if needed
-            boolean recoveryNeeded = !recovery && sse != null;
-            RecoveryResult recoveryResult = recoveryNeeded ? connectionClosure ? RecoveryResult.Pending
-                : recoverChannel(retryable || recovery)
-                : null;
-
-            if (retryable && !RecoveryResult.Failed.equals(recoveryResult)) {
+            if (retryable) {
               // Wait for pending recovery
-              if (RecoveryResult.Pending.equals(recoveryResult)) {
+              if (sse != null) {
                 if (retryPolicy.getMaxDuration() == null)
                   circuit.await();
                 else if (!circuit.await(retryStats.getMaxWaitTime())) {
@@ -98,7 +74,8 @@ abstract class RetryableResource {
               // Continue retries
               if (retryStats == null)
                 retryStats = new RetryStats(retryPolicy);
-              if (retryStats.canRetryForUpdatedStats()) {
+              retryStats.incrementRetries();
+              if (!retryStats.isPolicyExceeded()) {
                 long remainingWaitTime = retryStats.getWaitTime().toNanos()
                     - (System.nanoTime() - startTime);
                 if (remainingWaitTime > 0)
@@ -114,11 +91,6 @@ abstract class RetryableResource {
       }
     }
   }
-
-  /**
-   * Returns whether the resource can be recovered.
-   */
-  abstract boolean canRecover(boolean connectionClosed);
 
   /**
    * Handles common method invocations.
@@ -140,21 +112,10 @@ abstract class RetryableResource {
     return false;
   }
 
-  /**
-   * Recovers the channel when it's unexpectedly closed, returning {@link RecoveryResult#Pending} if
-   * the recovery is to be performed without waiting, {@link RecoveryResult#Succeeded} if the
-   * recovery succeeds or {@link RecoveryResult#Failed} if the recover fails.
-   * 
-   * @param waitForRecovery whether the invoking thread should wait for recovery or return
-   *          immediately
-   * @throws Execption when recovery fails due to a connection closure
-   */
-  RecoveryResult recoverChannel(boolean waitForRecovery) throws Exception {
-    return RecoveryResult.Failed;
-  }
-
   void interruptWaiters() {
     circuit.interruptWaiters();
     retryWaiter.interruptWaiters();
   }
+
+  abstract void resourceClosed();
 }

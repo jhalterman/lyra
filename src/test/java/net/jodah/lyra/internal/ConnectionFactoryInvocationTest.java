@@ -31,7 +31,7 @@ public class ConnectionFactoryInvocationTest extends AbstractFunctionalTest {
     mockConnectionOnly();
     connectionFactory = mock(ConnectionFactory.class);
     when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(
-        failNTimes(3, new ConnectException("fail"), connection));
+        failNTimes(3, new ConnectException("fail"), connection, connectionHandler));
     mockConnection();
     verifyCxnCreations(4);
   }
@@ -43,7 +43,7 @@ public class ConnectionFactoryInvocationTest extends AbstractFunctionalTest {
     connectionFactory = mock(ConnectionFactory.class);
     connection = mock(Connection.class);
     when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(
-        failNTimes(3, new RuntimeException(), connection));
+        failNTimes(3, new RuntimeException(), connection, connectionHandler));
 
     try {
       mockConnection();
@@ -62,7 +62,7 @@ public class ConnectionFactoryInvocationTest extends AbstractFunctionalTest {
     connectionFactory = mock(ConnectionFactory.class);
     connection = mock(Connection.class);
     when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(
-        failNTimes(3, new ConnectException("fail"), connection));
+        failNTimes(3, new ConnectException("fail"), connection, connectionHandler));
 
     try {
       mockConnection();

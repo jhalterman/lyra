@@ -100,7 +100,8 @@ public class ConnectionInvocationTest extends AbstractInvocationTest {
     mockConsumer(2, 5);
     mockConsumer(2, 6);
 
-    when(connection.createChannel()).thenAnswer(failNTimes(2, e, mockChannel(2).delegate));
+    when(connection.createChannel()).thenAnswer(
+        failNTimes(2, e, mockChannel(2).delegate, connectionHandler));
   }
 
   @Override

@@ -1,6 +1,7 @@
 package net.jodah.lyra.internal;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -22,6 +23,7 @@ import net.jodah.lyra.config.ConfigurableConnection;
 import net.jodah.lyra.retry.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
+import org.mockito.ArgumentMatcher;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.testng.annotations.BeforeMethod;
@@ -75,7 +77,8 @@ public abstract class AbstractFunctionalTest {
       if (consumer == null) {
         String consumerTag = String.format("%s-%s", delegate.getChannelNumber(), consumerNumber);
         consumer = new MockConsumer(proxy, consumerNumber);
-        when(delegate.basicConsume(eq("test-queue"), eq(consumer))).thenReturn(consumerTag);
+        when(delegate.basicConsume(eq("test-queue"), argThat(matcherFor(consumer)))).thenReturn(
+            consumerTag);
         proxy.basicConsume("test-queue", consumer);
         consumers.put(consumerNumber, consumer);
       }
@@ -186,13 +189,15 @@ public abstract class AbstractFunctionalTest {
     return new ShutdownSignalException(true, false, c, null);
   }
 
-  protected void callShutdownListener(ShutdownSignalException e) {
+  protected void callShutdownListener(RetryableResource resource, ShutdownSignalException e) {
     Object reason = e.getReason();
     if (reason instanceof Command) {
       Command command = (Command) reason;
       Method method = command.getMethod();
       if (method instanceof AMQP.Connection.Close)
         connectionHandler.shutdownListeners.get(0).shutdownCompleted(e);
+      else if (method instanceof AMQP.Channel.Close)
+        resource.shutdownListeners.get(0).shutdownCompleted(e);
     }
   }
 
@@ -208,11 +213,20 @@ public abstract class AbstractFunctionalTest {
   void verifyConsumerCreations(int channelNumber, int consumerNumber, int expectedInvocations)
       throws IOException {
     verify(mockChannel(channelNumber).delegate, times(expectedInvocations)).basicConsume(
-        eq("test-queue"), eq(mockConsumer(channelNumber, consumerNumber)));
+        eq("test-queue"), argThat(matcherFor(mockConsumer(channelNumber, consumerNumber))));
   }
 
   Channel delegateFor(Channel channelProxy) {
     return ((ChannelHandler) Proxy.getInvocationHandler(channelProxy)).delegate;
+  }
+
+  static ArgumentMatcher<Consumer> matcherFor(final Consumer consumer) {
+    return new ArgumentMatcher<Consumer>() {
+      @Override
+      public boolean matches(Object arg) {
+        return ((ConsumerDelegate) arg).delegate.equals(consumer);
+      }
+    };
   }
 
   /**
@@ -220,7 +234,8 @@ public abstract class AbstractFunctionalTest {
    * and returning {@code returnValue} thereafter. Prior to throwing t, the connection handler's
    * shutdown listener is completed if t is a connection shutdown signal.
    */
-  protected <T> Answer<T> failNTimes(final int n, final Throwable t, final T returnValue) {
+  protected <T> Answer<T> failNTimes(final int n, final Throwable t, final T returnValue,
+      final RetryableResource resource) {
     return new Answer<T>() {
       AtomicInteger failures = new AtomicInteger();
 
@@ -230,7 +245,7 @@ public abstract class AbstractFunctionalTest {
           return returnValue;
 
         if (t instanceof ShutdownSignalException)
-          callShutdownListener((ShutdownSignalException) t);
+          callShutdownListener(resource, (ShutdownSignalException) t);
         if (t instanceof ShutdownSignalException && !(t instanceof AlreadyClosedException))
           throw new IOException(t);
         else

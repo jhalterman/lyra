@@ -45,12 +45,32 @@ public final class RetryStats {
   }
 
   /**
-   * Updates the retry stats, incrementing the retry count and increasing the wait time if
-   * exponential backoff is configured, and returns whether the caller can retry based on the
-   * updated stats.
+   * Returns the max amount of time that an external caller should wait before the retry policy is
+   * exceeded. The max wait time is calculated each time {@link #incrementRetries()} or
+   * {@link #incrementTime()} is called.
    */
-  public boolean canRetryForUpdatedStats() {
+  public Duration getMaxWaitTime() {
+    return maxWaitTime == -1 ? Duration.inf() : Duration.nanos(maxWaitTime);
+  }
+
+  /**
+   * Returns the amount of time that an external caller should wait, based on the retry policy,
+   * before performing a retry. The wait time is calculated each time {@link #incrementRetries()} or
+   * {@link #incrementTime()} is called.
+   */
+  public Duration getWaitTime() {
+    return Duration.nanos(waitTime);
+  }
+
+  /**
+   * Increments the retries and time.
+   */
+  public void incrementRetries() {
     retryCount++;
+    incrementTime();
+  }
+
+  public void incrementTime() {
     long now = System.nanoTime();
 
     // First time
@@ -59,26 +79,20 @@ public final class RetryStats {
     else if (retryIntervalMultiplier != -1)
       waitTime = Math.min(maxRetryInterval, (long) (waitTime * retryIntervalMultiplier));
 
-    long elapsedNanos = (now - startTime);
     if (maxDuration != -1) {
+      long elapsedNanos = now - startTime;
       waitTime = Math.min(waitTime, maxDuration - elapsedNanos);
       maxWaitTime = maxDuration - elapsedNanos;
     }
-
-    boolean withinMaxRetries = maxRetries == -1 || retryCount <= maxRetries;
-    boolean withinMaxDuration = maxDuration == -1 || elapsedNanos <= maxDuration;
-    return withinMaxRetries && withinMaxDuration;
   }
 
   /**
-   * Returns the amount of time that an external caller should wait, based on the retry policy,
-   * before performing a retry.
+   * Returns true if the max retries or max duration for the retry policy have been exceeded else
+   * false.
    */
-  public Duration getWaitTime() {
-    return Duration.nanos(waitTime);
-  }
-
-  public Duration getMaxWaitTime() {
-    return maxWaitTime == -1 ? Duration.inf() : Duration.nanos(maxWaitTime);
+  public boolean isPolicyExceeded() {
+    boolean withinMaxRetries = maxRetries == -1 || retryCount < maxRetries;
+    boolean withinMaxDuration = maxDuration == -1 || System.nanoTime() - startTime < maxDuration;
+    return !withinMaxRetries || !withinMaxDuration;
   }
 }

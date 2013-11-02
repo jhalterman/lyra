@@ -2,6 +2,11 @@ package net.jodah.lyra.internal;
 
 import java.lang.reflect.Method;
 
+/**
+ * Encapsulates the state of a method invocation.
+ * 
+ * @author Jonathan Halterman
+ */
 class Invocation {
   final Method method;
   final Object[] args;

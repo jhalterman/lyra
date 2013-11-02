@@ -3,11 +3,11 @@ package net.jodah.lyra.internal;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.jodah.lyra.config.ChannelConfig;
 import net.jodah.lyra.config.Config;
@@ -26,12 +26,23 @@ import com.rabbitmq.client.ReturnListener;
 import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 
+/**
+ * Handles channel method invocations.
+ * 
+ * @author Jonathan Halterman
+ */
 public class ChannelHandler extends RetryableResource implements InvocationHandler {
   private final ConnectionHandler connectionHandler;
   private final Config config;
-  private final AtomicBoolean recovering = new AtomicBoolean();
+  volatile long previousMaxDeliveryTag;
+  volatile long maxDeliveryTag;
   Channel proxy;
   Channel delegate;
+
+  // Recovery state
+  private RetryStats recoveryStats;
+  private Map<String, Invocation> recoveryConsumers;
+  private ShutdownSignalException lastShutdownSignal;
 
   // Delegate state
   private final Map<String, Invocation> consumerInvocations = Collections.synchronizedMap();
@@ -47,6 +58,34 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     this.connectionHandler = connectionHandler;
     this.delegate = delegate;
     this.config = config;
+
+    ShutdownListener listener = new ChannelShutdownListener();
+    shutdownListeners.add(listener);
+    delegate.addShutdownListener(listener);
+  }
+
+  /**
+   * Handles channel closures.
+   */
+  private class ChannelShutdownListener implements ShutdownListener {
+    @Override
+    public void shutdownCompleted(ShutdownSignalException e) {
+      resourceClosed();
+      if (!e.isInitiatedByApplication()) {
+        log.error("Channel {} was closed unexpectedly", ChannelHandler.this);
+        lastShutdownSignal = e;
+        if (!Exceptions.isConnectionClosure(e) && canRecover())
+          ConnectionHandler.RECOVERY_EXECUTORS.execute(new Runnable() {
+            @Override
+            public void run() {
+              try {
+                recoverChannel(true);
+              } catch (Throwable ignore) {
+              }
+            }
+          });
+      }
+    }
   }
 
   @Override
@@ -54,62 +93,76 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     if (closed && Channel.class.equals(method.getDeclaringClass()))
       throw new AlreadyClosedException("Attempt to use closed channel", proxy);
 
-    return handleCommonMethods(delegate, method, args) ? null : callWithRetries(
-        new Callable<Object>() {
-          @Override
-          public Object call() throws Exception {
-            if (ChannelConfig.class.equals(method.getDeclaringClass()))
-              return Reflection.invoke(config, method, args);
+    Callable<Object> callable = new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        if (ChannelConfig.class.equals(method.getDeclaringClass()))
+          return Reflection.invoke(config, method, args);
 
-            String methodName = method.getName();
-            if ("basicCancel".equals(methodName) && args[0] != null)
-              consumerInvocations.remove((String) args[0]);
+        String methodName = method.getName();
 
-            Object result = Reflection.invoke(delegate, method, args);
-
-            if ("basicConsume".equals(methodName)) {
-              // Replace actual consumerTag
-              if (args.length > 3)
-                args[2] = result;
-              consumerInvocations.put((String) result, new Invocation(method, args));
-              log.info("Created consumer-{} of {} via {}", result, args[0], ChannelHandler.this);
-            } else if ("flow".equals(methodName))
-              flowDisabled = !(Boolean) args[0];
-            else if ("basicQos".equals(methodName)) {
-              // Store non-global Qos
-              if (args.length < 3 || !(Boolean) args[2])
-                basicQos = new Invocation(method, args);
-            } else if ("confirmSelect".equals(methodName))
-              confirmSelect = true;
-            else if ("txSelect".equals(methodName))
-              txSelect = true;
-            else if ("addConfirmListener".equals(methodName))
-              confirmListeners.add((ConfirmListener) args[0]);
-            else if ("addFlowListener".equals(methodName))
-              flowListeners.add((FlowListener) args[0]);
-            else if ("addReturnListener".equals(methodName))
-              returnListeners.add((ReturnListener) args[0]);
-            else if ("removeConfirmListener".equals(methodName))
-              confirmListeners.remove((ConfirmListener) args[0]);
-            else if ("removeFlowListener".equals(methodName))
-              flowListeners.remove((FlowListener) args[0]);
-            else if ("removeReturnListener".equals(methodName))
-              returnListeners.remove((ReturnListener) args[0]);
-            else if ("clearConfirmListeners".equals(methodName))
-              confirmListeners.clear();
-            else if ("clearFlowListeners".equals(methodName))
-              flowListeners.clear();
-            else if ("clearReturnListeners".equals(methodName))
-              returnListeners.clear();
-
-            return result;
+        if ("basicAck".equals(methodName) || "basicNack".equals(methodName)
+            || "basicReject".equals(methodName)) {
+          long deliveryTag = (Long) args[0] - previousMaxDeliveryTag;
+          if (deliveryTag > 0) {
+            args[0] = deliveryTag;
+          } else {
+            return null;
           }
+        } else if ("basicConsume".equals(methodName)) {
+          Consumer consumer = (Consumer) args[args.length - 1];
+          args[args.length - 1] = new ConsumerDelegate(ChannelHandler.this, consumer);
+          String consumerTag = (String) Reflection.invoke(delegate, method, args);
+          if (args.length > 3)
+            args[2] = consumerTag;
+          consumerInvocations.put(consumerTag, new Invocation(method, args));
+          log.info("Created consumer-{} of {} via {}", consumerTag, args[0], ChannelHandler.this);
+          return consumerTag;
+        } else if ("basicCancel".equals(methodName) && args[0] != null)
+          consumerInvocations.remove((String) args[0]);
 
-          @Override
-          public String toString() {
-            return Reflection.toString(method);
-          }
-        }, config.getChannelRetryPolicy(), false, true);
+        Object result = Reflection.invoke(delegate, method, args);
+
+        if ("flow".equals(methodName))
+          flowDisabled = !(Boolean) args[0];
+        else if ("basicQos".equals(methodName)) {
+          // Store non-global Qos
+          if (args.length < 3 || !(Boolean) args[2])
+            basicQos = new Invocation(method, args);
+        } else if ("confirmSelect".equals(methodName))
+          confirmSelect = true;
+        else if ("txSelect".equals(methodName))
+          txSelect = true;
+        else if ("addConfirmListener".equals(methodName))
+          confirmListeners.add((ConfirmListener) args[0]);
+        else if ("addFlowListener".equals(methodName))
+          flowListeners.add((FlowListener) args[0]);
+        else if ("addReturnListener".equals(methodName))
+          returnListeners.add((ReturnListener) args[0]);
+        else if ("removeConfirmListener".equals(methodName))
+          confirmListeners.remove((ConfirmListener) args[0]);
+        else if ("removeFlowListener".equals(methodName))
+          flowListeners.remove((FlowListener) args[0]);
+        else if ("removeReturnListener".equals(methodName))
+          returnListeners.remove((ReturnListener) args[0]);
+        else if ("clearConfirmListeners".equals(methodName))
+          confirmListeners.clear();
+        else if ("clearFlowListeners".equals(methodName))
+          flowListeners.clear();
+        else if ("clearReturnListeners".equals(methodName))
+          returnListeners.clear();
+
+        return result;
+      }
+
+      @Override
+      public String toString() {
+        return Reflection.toString(method);
+      }
+    };
+
+    return handleCommonMethods(delegate, method, args) ? null : callWithRetries(callable,
+        config.getChannelRetryPolicy(), null, canRecover(), true);
   }
 
   @Override
@@ -122,28 +175,9 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     connectionHandler.removeChannel(delegate.getChannelNumber());
   }
 
-  @Override
-  boolean canRecover(boolean connectionClosed) {
-    boolean recoverable = config.getChannelRecoveryPolicy() != null
+  boolean canRecover() {
+    return connectionHandler.canRecover() && config.getChannelRecoveryPolicy() != null
         && config.getChannelRecoveryPolicy().allowsRetries();
-    return connectionClosed ? recoverable && connectionHandler.canRecover(connectionClosed)
-        : recoverable;
-  }
-
-  @Override
-  RecoveryResult recoverChannel(boolean waitForRecovery) throws Exception {
-    // If not currently recovering
-    if (recovering.compareAndSet(false, true))
-      if (waitForRecovery)
-        return recoverChannel();
-      else
-        ConnectionHandler.RECOVERY_EXECUTORS.submit(new Callable<RecoveryResult>() {
-          public RecoveryResult call() throws Exception {
-            return recoverChannel();
-          }
-        });
-
-    return RecoveryResult.Pending;
   }
 
   /**
@@ -151,41 +185,51 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
    * 
    * @throws Exception when recovery fails due to a connection closure
    */
-  synchronized RecoveryResult recoverChannel() throws Exception {
+  synchronized void recoverChannel(boolean returnOnFailedRecovery) throws Exception {
     if (circuit.isClosed())
-      return RecoveryResult.Succeeded;
+      return;
 
-    final Map<String, Invocation> consumers = consumerInvocations.isEmpty() ? null
-        : new HashMap<String, Invocation>(consumerInvocations);
+    if (recoveryStats == null) {
+      recoveryConsumers = consumerInvocations.isEmpty() ? null : new HashMap<String, Invocation>(
+          consumerInvocations);
+      recoveryStats = new RetryStats(config.getChannelRecoveryPolicy());
+      recoveryStats.incrementTime();
+    } else if (recoveryStats.isPolicyExceeded()) {
+      recoveryFailed(lastShutdownSignal);
+      if (returnOnFailedRecovery)
+        return;
+    }
 
     try {
-      callWithRetries(new Callable<Channel>() {
+      delegate = callWithRetries(new Callable<Channel>() {
         @Override
         public Channel call() throws Exception {
           log.info("Recovering {} ", ChannelHandler.this);
+          previousMaxDeliveryTag = maxDeliveryTag;
           Channel channel = connectionHandler.createChannel(delegate.getChannelNumber());
           migrateConfiguration(channel);
-          delegate = channel;
-          if (config.isConsumerRecoveryEnabled())
-            recoverConsumers(channel, consumers);
-          circuit.close();
           return channel;
         }
-      }, config.getChannelRecoveryPolicy(), true, false);
-      for (ChannelListener listener : config.getChannelListeners())
-        listener.onRecovery(proxy);
-      return RecoveryResult.Succeeded;
+      }, config.getChannelRecoveryPolicy(), recoveryStats, true, false);
+      if (config.isConsumerRecoveryEnabled())
+        recoverConsumers(recoveryConsumers);
+      recoverySucceeded();
     } catch (Exception e) {
-      log.error("Failed to recover {}", this, e);
-      interruptWaiters();
-      for (ChannelListener listener : config.getChannelListeners())
-        listener.onRecoveryFailure(proxy, e);
       ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
-      if (sse != null && Exceptions.isConnectionClosure(sse))
-        throw e;
-      return RecoveryResult.Failed;
-    } finally {
-      recovering.set(false);
+      if (sse != null) {
+        if (Exceptions.isConnectionClosure(sse))
+          throw e;
+      } else if (recoveryStats.isPolicyExceeded())
+        recoveryFailed(e);
+    }
+  }
+
+  @Override
+  void resourceClosed() {
+    circuit.open();
+    synchronized (consumerInvocations) {
+      for (Invocation invocation : consumerInvocations.values())
+        ((ConsumerDelegate) invocation.args[invocation.args.length - 1]).close();
     }
   }
 
@@ -220,30 +264,68 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
    * 
    * @throws Exception when recovery fails due to a resource closure
    */
-  private void recoverConsumers(Channel channel, Map<String, Invocation> consumers)
-      throws Exception {
+  private void recoverConsumers(Map<String, Invocation> consumers) throws Exception {
     if (consumers != null)
-      for (final Map.Entry<String, Invocation> entry : consumers.entrySet()) {
-        Consumer consumer = (Consumer) entry.getValue().args[entry.getValue().args.length - 1];
+      for (Iterator<Map.Entry<String, Invocation>> it = consumers.entrySet().iterator(); it.hasNext();) {
+        Map.Entry<String, Invocation> entry = it.next();
+        Object[] args = entry.getValue().args;
+        ConsumerDelegate consumer = (ConsumerDelegate) args[args.length - 1];
 
         try {
           for (ConsumerListener listener : config.getConsumerListeners())
-            listener.onBeforeRecovery(consumer, proxy);
+            try {
+              listener.onBeforeRecovery(consumer, proxy);
+            } catch (Exception ignore) {
+            }
           log.info("Recovering consumer-{} via {}", entry.getKey(), this);
-          Reflection.invoke(channel, entry.getValue().method, entry.getValue().args);
+          consumer.open();
+          Reflection.invoke(delegate, entry.getValue().method, entry.getValue().args);
           for (ConsumerListener listener : config.getConsumerListeners())
-            listener.onAfterRecovery(consumer, proxy);
+            try {
+              listener.onAfterRecovery(consumer, proxy);
+            } catch (Exception ignore) {
+            }
         } catch (Exception e) {
           ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
           log.error("Failed to recover consumer-{} via {}", entry.getKey(), this, e);
           for (ConsumerListener listener : config.getConsumerListeners())
-            listener.onRecoveryFailure(consumer, proxy, e);
+            try {
+              listener.onRecoveryFailure(consumer, proxy, e);
+            } catch (Exception ignore) {
+            }
           if (sse != null) {
             if (!Exceptions.isConnectionClosure(sse))
-              consumers.remove(entry.getKey());
+              it.remove();
             throw e;
           }
         }
+      }
+  }
+
+  private void recoveryFailed(Exception e) {
+    log.error("Failed to recover {}", this, e);
+    recoveryDone();
+    interruptWaiters();
+    for (ChannelListener listener : config.getChannelListeners())
+      try {
+        listener.onRecoveryFailure(proxy, e);
+      } catch (Exception ignore) {
+      }
+  }
+
+  private void recoveryDone() {
+    recoveryStats = null;
+    recoveryConsumers = null;
+    lastShutdownSignal = null;
+  }
+
+  private void recoverySucceeded() {
+    recoveryDone();
+    circuit.close();
+    for (ChannelListener listener : config.getChannelListeners())
+      try {
+        listener.onRecovery(proxy);
+      } catch (Exception ignore) {
       }
   }
 }

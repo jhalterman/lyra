@@ -55,6 +55,7 @@ public class ConnectionRecoveryTest extends AbstractRecoveryTest {
     mockConsumer(2, 5);
     mockConsumer(2, 6);
 
-    when(connection.createChannel(eq(1))).thenAnswer(failNTimes(3, e, mockChannel(1).delegate));
+    when(connection.createChannel(eq(1))).thenAnswer(
+        failNTimes(3, e, mockChannel(1).delegate, connectionHandler));
   }
 }

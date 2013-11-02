@@ -5,8 +5,8 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import net.jodah.lyra.util.Duration;
 
 /**
- * A circuit that accepts re-entrant {@link #open()} and {@link #close()} calls and ensures fairness
- * when releasing {@link #await() waiting} threads.
+ * A circuit that accepts re-entrant {@link #open()}, allows waiting threads to be interrupted, and
+ * {@link #close()} calls and ensures fairness when releasing {@link #await() waiting} threads.
  * 
  * @author Jonathan Halterman
  */
@@ -20,7 +20,7 @@ public class ReentrantCircuit {
     private static final long serialVersionUID = 992522674231731445L;
 
     /**
-     * Closes the circuit if it's currently open.
+     * Closes the circuit.
      */
     @Override
     public boolean tryReleaseShared(int ignored) {

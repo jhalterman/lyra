@@ -115,7 +115,7 @@ Event listeners can be useful for setting up additional resources during recover
 * The standard interval between attempts
 * The maximum interval between attempts to exponentially backoff to
 
-Lyra allows for Recovery / Retry policies to be set globally or for individual resource types, as well as for initial connection attempts.
+Lyra allows for Recovery / Retry policies to be set globally, for individual resource types, and for initial connection attempts.
 
 #### On Retryable Failures
 
@@ -123,12 +123,15 @@ Lyra will only retry failed invocations that are deemed *retryable*. These inclu
 
 #### On Threading
 
-When a Connection or Channel are closed as the result of an invocation:
+When a Connection or Channel are closed unexpectedly recovery occurs in a background thread. If the resource was closed as the result of an invocation and a retry policy is configured, the calling thread will block until the Connection/Channel is recovered and the retry can be performed.
 
-* If recovery and retry policies are configured the calling thread will block until the Connection/Channel is recovered and the retry can be performed.
-* If a retry policy is not configured the failure is immediately rethrown. Recovery will still take place in a background thread if a recovery policy is configured.
+#### On Consumer Recovery
 
-When a Connection or Channel are closed involuntarily (not as the result of an invocation), recovery occurs in a background thread if a recovery policy is configured.
+When a channel is unexpectedly closed, Lyra ceases to deliver messages to any consumers on that channel
+
+and recovered, it's possible that consumers might still be processing messages from the previously closed channel. When a consumer performs basic ack, nack and reject calls for delivery tags from the previously closed channel, Lyra simply drops these requests since the delivery tags are no longer valid for the newly recovered channel.
+
+ In effect, this means that **a message can be seen twice on the same channel**. This is to be expected with channel and consumer recovery, but is something that implementors should be aware of.
 
 ## Docs
 
