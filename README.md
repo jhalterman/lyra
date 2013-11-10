@@ -24,7 +24,7 @@ Also add the latest [amqp-client] dependency:
 <dependency>
   <groupId>com.rabbitmq</groupId>
   <artifactId>amqp-client</artifactId>
-  <version>3.1.4</version>
+  <version>3.2.1</version>
 </dependency>
 ```
 
@@ -125,13 +125,11 @@ Lyra will only retry failed invocations that are deemed *retryable*. These inclu
 
 When a Connection or Channel are closed unexpectedly recovery occurs in a background thread. If the resource was closed as the result of an invocation and a retry policy is configured, the calling thread will block until the Connection/Channel is recovered and the retry can be performed.
 
-#### On Consumer Recovery
+#### On Message Delivery
 
-When a channel is unexpectedly closed, Lyra ceases to deliver messages to any consumers on that channel
+When a channel is closed and recovered, any messages that were delivered but not acknowledged will be redelivered on the newly recovered channel. Attempts to ack/nack/reject messages that were delivered before the channel was recovered are simply ignored since their delivery tags will not be valid for the newly recovered channel. 
 
-and recovered, it's possible that consumers might still be processing messages from the previously closed channel. When a consumer performs basic ack, nack and reject calls for delivery tags from the previously closed channel, Lyra simply drops these requests since the delivery tags are no longer valid for the newly recovered channel.
-
- In effect, this means that **a message can be seen twice on the same channel**. This is to be expected with channel and consumer recovery, but is something that implementors should be aware of.
+Since channel recovery happens transparently, this means that in effect when a channel is recovered and redelivery occurs **a message can be seen more than once on the same channel**.
 
 ## Docs
 
