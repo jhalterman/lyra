@@ -108,7 +108,7 @@ public class ConnectionOptions {
    * @throws NullPointerException if {@code addresses} is null
    */
   public ConnectionOptions withAddresses(Address... addresses) {
-    addresses = Assert.notNull(addresses, "addresses");
+    this.addresses = Assert.notNull(addresses, "addresses");
     return this;
   }
 
