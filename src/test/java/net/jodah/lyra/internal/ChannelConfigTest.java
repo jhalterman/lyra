@@ -6,7 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.fail;
 import net.jodah.lyra.config.ConfigurableChannel;
-import net.jodah.lyra.convention.RecoveryPolicies;
+import net.jodah.lyra.config.RecoveryPolicies;
 
 import org.testng.annotations.Test;
 

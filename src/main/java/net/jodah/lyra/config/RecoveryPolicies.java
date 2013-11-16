@@ -1,6 +1,5 @@
-package net.jodah.lyra.convention;
+package net.jodah.lyra.config;
 
-import net.jodah.lyra.config.RecoveryPolicy;
 
 /**
  * Factory methods for recovery policies.

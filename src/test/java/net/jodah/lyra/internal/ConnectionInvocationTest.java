@@ -8,8 +8,8 @@ import static org.testng.Assert.assertTrue;
 import java.io.IOException;
 
 import net.jodah.lyra.config.Config;
-import net.jodah.lyra.convention.RecoveryPolicies;
-import net.jodah.lyra.convention.RetryPolicies;
+import net.jodah.lyra.config.RecoveryPolicies;
+import net.jodah.lyra.config.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
 import org.testng.annotations.Test;

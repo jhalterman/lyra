@@ -1,6 +1,5 @@
-package net.jodah.lyra.convention;
+package net.jodah.lyra.config;
 
-import net.jodah.lyra.config.RetryPolicy;
 
 /**
  * Factory methods for retry policies.

@@ -20,8 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.jodah.lyra.ConnectionOptions;
 import net.jodah.lyra.config.Config;
 import net.jodah.lyra.config.ConfigurableConnection;
-import net.jodah.lyra.convention.RecoveryPolicies;
-import net.jodah.lyra.convention.RetryPolicies;
+import net.jodah.lyra.config.RecoveryPolicies;
+import net.jodah.lyra.config.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
 import org.mockito.ArgumentMatcher;
