@@ -51,12 +51,12 @@ Connection connection = Connections.create(options, config);
 Channel channel1 = connection.createChannel(1);
 Channel channel2 = connection.createChannel(2);
 channel1.basicConsume("foo-queue", consumer1);
-channel1.basicConsume("foo-queue", consumer2);
+channel1.basicConsume("bar-queue", consumer2);
 channel2.basicConsume("foo-queue", consumer3);
-channel2.basicConsume("foo-queue", consumer4);
+channel2.basicConsume("bar-queue", consumer4);
 ```
 
-This results in the dependency hierarchy:
+This results in the resource hierarchy:
 
 <img src="http://jodah.net/lyra/assets/img/rabbit-graph.png"\>
 
@@ -129,7 +129,7 @@ When a Connection or Channel are closed unexpectedly recovery occurs in a backgr
 
 When a channel is closed and recovered, any messages that were delivered but not acknowledged will be redelivered on the newly recovered channel. Attempts to ack/nack/reject messages that were delivered before the channel was recovered are simply ignored since their delivery tags will not be valid for the newly recovered channel. 
 
-Since channel recovery happens transparently, this means that in effect when a channel is recovered and redelivery occurs **a message can be seen more than once on the same channel**.
+Note, since channel recovery happens transparently, in effect when a channel is recovered and message redelivery occurs **messages may be seen more than once on the recovered channel**.
 
 ## Docs
 
