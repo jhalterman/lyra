@@ -150,5 +150,5 @@ Copyright 2013 Jonathan Halterman - Released under the [Apache 2.0 license](http
 [connection-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ConnectionConfig.html
 [channel-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ChannelConfig.html
 [consumer-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ConsumerConfig.html
-[recovery-policy]: http://jodah.net/lyra/javadoc/net/jodah/lyra/retry/RecoveryPolicy.html
-[retry-policy]: http://jodah.net/lyra/javadoc/net/jodah/lyra/retry/RetryPolicy.html
+[recovery-policy]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/RecoveryPolicy.html
+[retry-policy]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/RetryPolicy.html
