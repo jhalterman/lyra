@@ -40,7 +40,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   Channel delegate;
 
   // Recovery state
-  private RetryStats recoveryStats;
+  private RecurringStats recoveryStats;
   private Map<String, Invocation> recoveryConsumers;
   private ShutdownSignalException lastShutdownSignal;
 
@@ -177,7 +177,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   boolean canRecover() {
     return connectionHandler.canRecover() && config.getChannelRecoveryPolicy() != null
-        && config.getChannelRecoveryPolicy().allowsRetries();
+        && config.getChannelRecoveryPolicy().allowsAttempts();
   }
 
   /**
@@ -192,7 +192,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     if (recoveryStats == null) {
       recoveryConsumers = consumerInvocations.isEmpty() ? null : new HashMap<String, Invocation>(
           consumerInvocations);
-      recoveryStats = new RetryStats(config.getChannelRecoveryPolicy());
+      recoveryStats = new RecurringStats(config.getChannelRecoveryPolicy());
       recoveryStats.incrementTime();
     } else if (recoveryStats.isPolicyExceeded()) {
       recoveryFailed(lastShutdownSignal);
@@ -302,9 +302,15 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       }
   }
 
+  private void recoveryComplete() {
+    recoveryStats = null;
+    recoveryConsumers = null;
+    lastShutdownSignal = null;
+  }
+
   private void recoveryFailed(Exception e) {
     log.error("Failed to recover {}", this, e);
-    recoveryDone();
+    recoveryComplete();
     interruptWaiters();
     for (ChannelListener listener : config.getChannelListeners())
       try {
@@ -313,14 +319,8 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       }
   }
 
-  private void recoveryDone() {
-    recoveryStats = null;
-    recoveryConsumers = null;
-    lastShutdownSignal = null;
-  }
-
   private void recoverySucceeded() {
-    recoveryDone();
+    recoveryComplete();
     circuit.close();
     for (ChannelListener listener : config.getChannelListeners())
       try {

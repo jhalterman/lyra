@@ -19,7 +19,6 @@ import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConnectionListener;
 import net.jodah.lyra.internal.util.Reflection;
 import net.jodah.lyra.internal.util.concurrent.NamedThreadFactory;
-import net.jodah.lyra.retry.RetryPolicy;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -161,7 +160,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
 
   boolean canRecover() {
     return config.getConnectionRecoveryPolicy() != null
-        && config.getConnectionRecoveryPolicy().allowsRetries();
+        && config.getConnectionRecoveryPolicy().allowsAttempts();
   }
 
   Channel createChannel(int channelNumber) throws IOException {
@@ -198,12 +197,12 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     }
   }
 
-  private void createConnection(RetryPolicy retryPolicy, final boolean recovery) throws IOException {
+  private void createConnection(RecurringPolicy<?> recurringPolicy, final boolean recovery) throws IOException {
     try {
-      RetryStats retryStats = null;
+      RecurringStats recurringStats = null;
       if (recovery) {
-        retryStats = new RetryStats(retryPolicy);
-        retryStats.incrementTime();
+        recurringStats = new RecurringStats(recurringPolicy);
+        recurringStats.incrementTime();
       }
 
       delegate = callWithRetries(new Callable<Connection>() {
@@ -223,7 +222,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
               amqpAddress);
           return connection;
         }
-      }, retryPolicy, retryStats, true, false);
+      }, recurringPolicy, recurringStats, true, false);
     } catch (Throwable t) {
       if (t instanceof IOException)
         throw (IOException) t;

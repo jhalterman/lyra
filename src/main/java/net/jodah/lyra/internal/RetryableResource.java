@@ -11,7 +11,6 @@ import net.jodah.lyra.internal.util.Collections;
 import net.jodah.lyra.internal.util.Reflection;
 import net.jodah.lyra.internal.util.concurrent.InterruptableWaiter;
 import net.jodah.lyra.internal.util.concurrent.ReentrantCircuit;
-import net.jodah.lyra.retry.RetryPolicy;
 import net.jodah.lyra.util.Duration;
 
 import org.slf4j.Logger;
@@ -38,8 +37,8 @@ abstract class RetryableResource {
   /**
    * Calls the {@code callable} with retries, throwing a failure if retries are exhausted.
    */
-  <T> T callWithRetries(Callable<T> callable, RetryPolicy retryPolicy, RetryStats retryStats,
-      boolean recoverable, boolean logFailures) throws Exception {
+  <T> T callWithRetries(Callable<T> callable, RecurringPolicy<?> recurringPolicy,
+      RecurringStats retryStats, boolean recoverable, boolean logFailures) throws Exception {
     boolean recovery = retryStats != null;
 
     while (true) {
@@ -47,7 +46,8 @@ abstract class RetryableResource {
         return callable.call();
       } catch (Exception e) {
         ShutdownSignalException sse = extractCause(e, ShutdownSignalException.class);
-        if (sse == null && logFailures && retryPolicy != null && retryPolicy.allowsRetries())
+        if (sse == null && logFailures && recurringPolicy != null
+            && recurringPolicy.allowsAttempts())
           log.error("Invocation of {} failed.", callable, e);
 
         if (sse != null && (recovery || !recoverable))
@@ -56,14 +56,14 @@ abstract class RetryableResource {
         if (!closed) {
           try {
             // Retry on channel recovery failure or retryable exception
-            boolean retryable = retryPolicy != null && retryPolicy.allowsRetries()
+            boolean retryable = recurringPolicy != null && recurringPolicy.allowsAttempts()
                 && isRetryable(e, sse);
             long startTime = System.nanoTime();
 
             if (retryable) {
               // Wait for pending recovery
               if (sse != null) {
-                if (retryPolicy.getMaxDuration() == null)
+                if (recurringPolicy.getMaxDuration() == null)
                   circuit.await();
                 else if (!circuit.await(retryStats.getMaxWaitTime())) {
                   log.debug("Exceeded max wait time while waiting for {} to recover", this);
@@ -73,8 +73,8 @@ abstract class RetryableResource {
 
               // Continue retries
               if (retryStats == null)
-                retryStats = new RetryStats(retryPolicy);
-              retryStats.incrementRetries();
+                retryStats = new RecurringStats(recurringPolicy);
+              retryStats.incrementAttempts();
               if (!retryStats.isPolicyExceeded()) {
                 long remainingWaitTime = retryStats.getWaitTime().toNanos()
                     - (System.nanoTime() - startTime);

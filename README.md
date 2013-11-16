@@ -36,9 +36,9 @@ The key feature of Lyra is its ability to automatically recover resources such a
 
 ```java
 Config config = new Config()
-	.withRecoveryPolicy(new RetryPolicy()
-		.withMaxRetries(100)
-		.withRetryInterval(Duration.seconds(1))
+	.withRecoveryPolicy(new RecoveryPolicy()
+		.withMaxAttempts(20)
+		.withInterval(Duration.seconds(1))
 		.withMaxDuration(Duration.minutes(5)));
 ```
 
@@ -70,7 +70,7 @@ Lyra also supports invocation retries when a *retryable* failure occurs while cr
 ConnectionOptions options = new ConnectionOptions()
 	.withHost("localhost");
 Config config = new Config()
-	.withRecoveryPolicy(RetryPolicies.retryAlways())
+	.withRecoveryPolicy(RecoveryPolicies.recoverAlways())
 	.withRetryPolicy(new RetryPolicy()
 		.withBackoff(Duration.seconds(1), Duration.seconds(30))
 		.withMaxDuration(Duration.minutes(10)));
@@ -84,7 +84,7 @@ Here we've created a new `Connection` and `Channel`, specifying a recovery polic
 
 #### Resource Configuration
 
-Lyra allows for resource configuration to be applied at different levels. For example, [global recovery][global-recovery] and [global retry][global-retry] policies can be configured for all resources. These policies can be overriden with specific policies for [connection attempts][connect-retry], [connections][connection-config], [channels][channel-config] and [consumers][consumer-config]. Lyra also allows for individual connections and channels to be re-configured after creation:
+Lyra allows for resource configuration to be applied at different levels. For example, [global recovery][global-recovery] and [global retry][global-retry] policies can be configured for all resources. These policies can be overriden with specific policies for [connection attempts][connect-retry], [connections][connection-config] and [channels][channel-config]. Lyra also allows for individual connections and channels to be re-configured after creation:
 
 ```java
 ConfigurableConnection configurableConnection = Config.of(connection);
@@ -106,16 +106,16 @@ Event listeners can be useful for setting up additional resources during recover
 
 ## Additional Notes
 
-#### On Recovery / Retry Policies
+#### On Recovery and Retry Policies
 
-[Recovery / Retry policies](http://jodah.net/lyra/javadoc/net/jodah/lyra/retry/RetryPolicy.html) allow you to specify:
+[Recovery][recovery-policy] and [retry][retry-policy] policies allow you to specify:
 
 * The maximum number of attempts to perform
 * The maxmimum duration that attempts should be performed for
-* The standard interval between attempts
+* The interval between attempts
 * The maximum interval between attempts to exponentially backoff to
 
-Lyra allows for Recovery / Retry policies to be set globally, for individual resource types, and for initial connection attempts.
+Lyra allows for recovery and retry policies to be set globally, for individual resource types, and for initial connection attempts.
 
 #### On Retryable Failures
 
@@ -150,3 +150,5 @@ Copyright 2013 Jonathan Halterman - Released under the [Apache 2.0 license](http
 [connection-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ConnectionConfig.html
 [channel-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ChannelConfig.html
 [consumer-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ConsumerConfig.html
+[recovery-policy]: http://jodah.net/lyra/javadoc/net/jodah/lyra/retry/RecoveryPolicy.html
+[retry-policy]: http://jodah.net/lyra/javadoc/net/jodah/lyra/retry/RetryPolicy.html

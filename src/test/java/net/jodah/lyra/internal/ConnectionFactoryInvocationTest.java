@@ -9,7 +9,7 @@ import java.net.ConnectException;
 import java.util.concurrent.ExecutorService;
 
 import net.jodah.lyra.config.Config;
-import net.jodah.lyra.retry.RetryPolicies;
+import net.jodah.lyra.convention.RetryPolicies;
 
 import org.testng.annotations.Test;
 

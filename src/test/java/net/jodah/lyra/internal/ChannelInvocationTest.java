@@ -11,7 +11,8 @@ import static org.testng.Assert.assertTrue;
 import java.io.IOException;
 
 import net.jodah.lyra.config.Config;
-import net.jodah.lyra.retry.RetryPolicies;
+import net.jodah.lyra.convention.RecoveryPolicies;
+import net.jodah.lyra.convention.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
 import org.jodah.concurrentunit.Waiter;
@@ -128,7 +129,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnChannelShutdownWithNoRetryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryNever()).withRecoveryPolicy(
-        RetryPolicies.retryAlways());
+        RecoveryPolicies.recoverAlways());
     performThrowableInvocation(retryableChannelShutdownSignal());
 
     // Assert that the channel is recovered asynchronously
@@ -149,7 +150,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnChannelShutdownWithNoRecoveryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryAlways()).withRecoveryPolicy(
-        RetryPolicies.retryNever());
+        RecoveryPolicies.recoverNever());
     performThrowableInvocation(retryableChannelShutdownSignal());
     verifySingleInvocation();
   }
@@ -160,7 +161,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnConnectionShutdownWithNoRetryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryNever()).withRecoveryPolicy(
-        RetryPolicies.retryAlways());
+        RecoveryPolicies.recoverAlways());
     performThrowableInvocation(retryableConnectionShutdownSignal());
 
     // Assert that the channel is recovered asynchronously
@@ -181,7 +182,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnConnectionShutdownWithNoRecoveryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryAlways()).withRecoveryPolicy(
-        RetryPolicies.retryNever());
+        RecoveryPolicies.recoverNever());
     performThrowableInvocation(retryableConnectionShutdownSignal());
     verifySingleInvocation();
   }
@@ -192,8 +193,8 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnConnectionShutdownWithNoCxnRecoveryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryAlways())
-        .withConnectionRecoveryPolicy(RetryPolicies.retryNever())
-        .withChannelRecoveryPolicy(RetryPolicies.retryAlways());
+        .withConnectionRecoveryPolicy(RecoveryPolicies.recoverNever())
+        .withChannelRecoveryPolicy(RecoveryPolicies.recoverAlways());
     performThrowableInvocation(retryableConnectionShutdownSignal());
     verifySingleInvocation();
   }
@@ -204,8 +205,8 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
    */
   public void shouldThrowOnConnectionShutdownWithNoChannelRecoveryPolicy() throws Throwable {
     config = new Config().withRetryPolicy(RetryPolicies.retryAlways())
-        .withConnectionRecoveryPolicy(RetryPolicies.retryAlways())
-        .withChannelRecoveryPolicy(RetryPolicies.retryNever());
+        .withConnectionRecoveryPolicy(RecoveryPolicies.recoverAlways())
+        .withChannelRecoveryPolicy(RecoveryPolicies.recoverNever());
     performThrowableInvocation(retryableConnectionShutdownSignal());
     verifyCxnCreations(2);
     verifyChannelCreations(1, 1);

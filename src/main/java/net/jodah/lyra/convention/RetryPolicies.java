@@ -1,4 +1,6 @@
-package net.jodah.lyra.retry;
+package net.jodah.lyra.convention;
+
+import net.jodah.lyra.config.RetryPolicy;
 
 /**
  * Factory methods for retry policies.
@@ -13,13 +15,13 @@ public final class RetryPolicies {
    * Returns a RetryPolicy that never retries.
    */
   public static RetryPolicy retryNever() {
-    return new RetryPolicy().withMaxRetries(0);
+    return new RetryPolicy().withMaxAttempts(0);
   }
 
   /**
    * Returns a RetryPolicy that always retries.
    */
   public static RetryPolicy retryAlways() {
-    return new RetryPolicy().withMaxRetries(-1);
+    return new RetryPolicy().withMaxAttempts(-1);
   }
 }

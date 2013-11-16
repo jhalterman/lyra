@@ -1,52 +1,50 @@
 package net.jodah.lyra.internal;
 
-import net.jodah.lyra.retry.RetryPolicy;
 import net.jodah.lyra.util.Duration;
 
 /**
- * Tracks retry related statistics for a supervised instance.
+ * Statistics to track the usage of a RecurringPolicy.
  * 
  * @author Jonathan Halterman
  */
-public final class RetryStats {
+public final class RecurringStats {
   // Retry stats
-  private final int maxRetries;
+  private final int maxAttempts;
   private final long maxDuration;
-  private final long retryInterval;
+  private final long interval;
   private long startTime;
 
   // Backoff stats
-  private double retryIntervalMultiplier = -1;
-  private long maxRetryInterval;
+  private double intervalMultiplier = -1;
+  private long maxInterval;
 
   // Mutable state
-  private int retryCount;
+  private int attemptCount;
   private long waitTime;
   private long maxWaitTime;
 
-  public RetryStats(RetryPolicy retryPolicy) {
-    maxRetries = retryPolicy.getMaxRetries();
-    retryInterval = retryPolicy.getRetryInterval() == null ? 0 : retryPolicy.getRetryInterval()
-        .toNanos();
+  public RecurringStats(RecurringPolicy<?> retryPolicy) {
+    maxAttempts = retryPolicy.getMaxAttempts();
+    interval = retryPolicy.getInterval() == null ? 0 : retryPolicy.getInterval().toNanos();
     if (retryPolicy.getMaxDuration() == null) {
       maxDuration = -1;
-      waitTime = retryInterval;
+      waitTime = interval;
       maxWaitTime = -1;
     } else {
       maxDuration = retryPolicy.getMaxDuration().toNanos();
-      waitTime = Math.min(retryInterval, maxDuration);
+      waitTime = Math.min(interval, maxDuration);
       maxWaitTime = maxDuration;
     }
 
-    if (retryPolicy.getMaxRetryInterval() != null) {
-      retryIntervalMultiplier = retryPolicy.getRetryIntervalMultiplier();
-      maxRetryInterval = retryPolicy.getMaxRetryInterval().toNanos();
+    if (retryPolicy.getMaxInterval() != null) {
+      intervalMultiplier = retryPolicy.getIntervalMultiplier();
+      maxInterval = retryPolicy.getMaxInterval().toNanos();
     }
   }
 
   /**
    * Returns the max amount of time that an external caller should wait before the retry policy is
-   * exceeded. The max wait time is calculated each time {@link #incrementRetries()} or
+   * exceeded. The max wait time is calculated each time {@link #incrementAttempts()} or
    * {@link #incrementTime()} is called.
    */
   public Duration getMaxWaitTime() {
@@ -55,18 +53,18 @@ public final class RetryStats {
 
   /**
    * Returns the amount of time that an external caller should wait, based on the retry policy,
-   * before performing a retry. The wait time is calculated each time {@link #incrementRetries()} or
-   * {@link #incrementTime()} is called.
+   * before performing a retry. The wait time is calculated each time {@link #incrementAttempts()}
+   * or {@link #incrementTime()} is called.
    */
   public Duration getWaitTime() {
     return Duration.nanos(waitTime);
   }
 
   /**
-   * Increments the retries and time.
+   * Increments the retry/recovery attempts and time.
    */
-  public void incrementRetries() {
-    retryCount++;
+  public void incrementAttempts() {
+    attemptCount++;
     incrementTime();
   }
 
@@ -76,8 +74,8 @@ public final class RetryStats {
     // First time
     if (startTime == 0)
       startTime = now;
-    else if (retryIntervalMultiplier != -1)
-      waitTime = Math.min(maxRetryInterval, (long) (waitTime * retryIntervalMultiplier));
+    else if (intervalMultiplier != -1)
+      waitTime = Math.min(maxInterval, (long) (waitTime * intervalMultiplier));
 
     if (maxDuration != -1) {
       long elapsedNanos = now - startTime;
@@ -87,11 +85,11 @@ public final class RetryStats {
   }
 
   /**
-   * Returns true if the max retries or max duration for the retry policy have been exceeded else
-   * false.
+   * Returns true if the max attempts or max duration for the recurring policy have been exceeded
+   * else false.
    */
   public boolean isPolicyExceeded() {
-    boolean withinMaxRetries = maxRetries == -1 || retryCount < maxRetries;
+    boolean withinMaxRetries = maxAttempts == -1 || attemptCount < maxAttempts;
     boolean withinMaxDuration = maxDuration == -1 || System.nanoTime() - startTime < maxDuration;
     return !withinMaxRetries || !withinMaxDuration;
   }

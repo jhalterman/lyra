@@ -3,8 +3,8 @@ package net.jodah.lyra.internal;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
-import net.jodah.lyra.internal.RetryStats;
-import net.jodah.lyra.retry.RetryPolicy;
+import net.jodah.lyra.config.RetryPolicy;
+import net.jodah.lyra.internal.RecurringStats;
 import net.jodah.lyra.util.Duration;
 
 import org.testng.annotations.Test;
@@ -13,27 +13,27 @@ import org.testng.annotations.Test;
  * @author Jonathan Halterman
  */
 @Test
-public class RetryStatsTest {
-  public void shouldRetryForeverWithDefaultPolicy() throws Exception {
-    RetryStats stats = new RetryStats(new RetryPolicy());
-    stats.incrementRetries();
+public class RecurringStatsTest {
+  public void shouldAttemptForeverWithDefaultPolicy() throws Exception {
+    RecurringStats stats = new RecurringStats(new RetryPolicy());
+    stats.incrementAttempts();
     assertFalse(stats.isPolicyExceeded());
     Thread.sleep(50);
-    stats.incrementRetries();
+    stats.incrementAttempts();
     assertFalse(stats.isPolicyExceeded());
   }
 
-  public void shouldNotRetryWhenMaxAttemptsExceeded() throws Exception {
-    RetryStats stats = new RetryStats(new RetryPolicy().withMaxRetries(3));
-    stats.incrementRetries();
-    stats.incrementRetries();
+  public void shouldNotAttemptWhenMaxAttemptsExceeded() throws Exception {
+    RecurringStats stats = new RecurringStats(new RetryPolicy().withMaxAttempts(3));
+    stats.incrementAttempts();
+    stats.incrementAttempts();
     assertFalse(stats.isPolicyExceeded());
-    stats.incrementRetries();
+    stats.incrementAttempts();
     assertTrue(stats.isPolicyExceeded());
   }
 
-  public void shouldNotRetryWhenMaxDurationExceeded() throws Exception {
-    RetryStats stats = new RetryStats(new RetryPolicy().withMaxDuration(Duration.millis(25)));
+  public void shouldNotAttemptWhenMaxDurationExceeded() throws Exception {
+    RecurringStats stats = new RecurringStats(new RetryPolicy().withMaxDuration(Duration.millis(25)));
     stats.incrementTime();
     assertFalse(stats.isPolicyExceeded());
     assertFalse(stats.isPolicyExceeded());
@@ -42,7 +42,7 @@ public class RetryStatsTest {
   }
 
   public void shouldAdjustWaitTimeForMaxDuration() throws Throwable {
-    RetryStats stats = new RetryStats(new RetryPolicy().withRetryInterval(Duration.millis(150))
+    RecurringStats stats = new RecurringStats(new RetryPolicy().withInterval(Duration.millis(150))
         .withMaxDuration(Duration.millis(100)));
     stats.incrementTime();
     assertFalse(stats.isPolicyExceeded());
@@ -54,21 +54,21 @@ public class RetryStatsTest {
   }
 
   public void waitTimeShouldDefaultToZero() {
-    RetryStats stats = new RetryStats(new RetryPolicy());
+    RecurringStats stats = new RecurringStats(new RetryPolicy());
     assertEquals(stats.getWaitTime().toMillis(), 0);
-    stats.incrementRetries();
+    stats.incrementAttempts();
     assertEquals(stats.getWaitTime().toMillis(), 0);
   }
 
   public void waitTimeShouldBeConstant() {
-    RetryStats stats = new RetryStats(new RetryPolicy().withRetryInterval(Duration.millis(5)));
+    RecurringStats stats = new RecurringStats(new RetryPolicy().withInterval(Duration.millis(5)));
     assertEquals(stats.getWaitTime().toMillis(), 5);
-    stats.incrementRetries();
+    stats.incrementAttempts();
     assertEquals(stats.getWaitTime().toMillis(), 5);
   }
 
   public void waitTimeShouldIncreaseExponentially() throws Exception {
-    RetryStats stats = new RetryStats(new RetryPolicy().withBackoff(Duration.millis(1),
+    RecurringStats stats = new RecurringStats(new RetryPolicy().withBackoff(Duration.millis(1),
         Duration.millis(5)));
     stats.incrementTime();
     assertEquals(stats.getWaitTime().toMillis(), 1);

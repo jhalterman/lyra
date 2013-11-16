@@ -7,8 +7,9 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 
 import net.jodah.lyra.config.Config;
+import net.jodah.lyra.convention.RecoveryPolicies;
+import net.jodah.lyra.convention.RetryPolicies;
 import net.jodah.lyra.event.DefaultChannelListener;
-import net.jodah.lyra.retry.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
 import org.testng.annotations.Test;
@@ -66,8 +67,8 @@ public class ChannelRecoveryTest extends AbstractRecoveryTest {
    */
   public void shouldHandleRecoveryFailureFromChannelListener() throws Throwable {
     config = new Config().withRetryPolicy(
-        RetryPolicies.retryAlways().withRetryInterval(Duration.millis(10)))
-        .withRecoveryPolicy(RetryPolicies.retryAlways())
+        RetryPolicies.retryAlways().withInterval(Duration.millis(10)))
+        .withRecoveryPolicy(RecoveryPolicies.recoverAlways())
         .withChannelListeners(new DefaultChannelListener() {
           @Override
           public void onRecovery(Channel channel) {

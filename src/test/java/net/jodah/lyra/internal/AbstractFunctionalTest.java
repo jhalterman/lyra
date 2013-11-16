@@ -20,7 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.jodah.lyra.ConnectionOptions;
 import net.jodah.lyra.config.Config;
 import net.jodah.lyra.config.ConfigurableConnection;
-import net.jodah.lyra.retry.RetryPolicies;
+import net.jodah.lyra.convention.RecoveryPolicies;
+import net.jodah.lyra.convention.RetryPolicies;
 import net.jodah.lyra.util.Duration;
 
 import org.mockito.ArgumentMatcher;
@@ -113,8 +114,8 @@ public abstract class AbstractFunctionalTest {
     options.withConnectionFactory(connectionFactory);
     if (config == null)
       config = new Config().withRetryPolicy(
-          RetryPolicies.retryAlways().withRetryInterval(Duration.millis(10))).withRecoveryPolicy(
-          RetryPolicies.retryAlways());
+          RetryPolicies.retryAlways().withInterval(Duration.millis(10))).withRecoveryPolicy(
+          RecoveryPolicies.recoverAlways());
 
     connectionHandler = new ConnectionHandler(options, config);
     connectionProxy = (ConfigurableConnection) Proxy.newProxyInstance(

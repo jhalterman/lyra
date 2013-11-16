@@ -3,7 +3,6 @@ package net.jodah.lyra.config;
 import java.util.Collection;
 
 import net.jodah.lyra.event.ConnectionListener;
-import net.jodah.lyra.retry.RetryPolicy;
 
 import com.rabbitmq.client.Connection;
 
@@ -23,9 +22,9 @@ public interface ConnectionConfig extends ChannelConfig {
   /**
    * Returns the connection's recovery policy.
    * 
-   * @see #withConnectionRecoveryPolicy(RetryPolicy)
+   * @see #withConnectionRecoveryPolicy(RecoveryPolicy)
    */
-  RetryPolicy getConnectionRecoveryPolicy();
+  RecoveryPolicy getConnectionRecoveryPolicy();
 
   /**
    * Returns the connection's retry policy.
@@ -42,7 +41,7 @@ public interface ConnectionConfig extends ChannelConfig {
   /**
    * Sets the policy to use for the recovery of Connections after an unexpected Connection closure.
    */
-  ConnectionConfig withConnectionRecoveryPolicy(RetryPolicy recoveryPolicy);
+  ConnectionConfig withConnectionRecoveryPolicy(RecoveryPolicy recoveryPolicy);
 
   /**
    * Sets the policy to use for handling {@link Connection} invocation errors.
