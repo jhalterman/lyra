@@ -60,7 +60,7 @@ This results in the resource hierarchy:
 
 <img src="http://jodah.net/lyra/assets/img/rabbit-graph.png"\>
 
-If the Connection is unexpectedly closed, Lyra will attempt to recover it along with its Channels and Consumers. If a Channel is unexpectedly closed, Lyra will attempt to recover it along with its Consumers.
+If one of these resources is unexpectedly closed, it will be recovered according to the recovery policy. If the Connection is unexpectedly closed, Lyra will attempt to recover it along with its Channels and Consumers. If a Channel is unexpectedly closed, Lyra will attempt to recover it along with its Consumers.
 
 #### Invocation Retries
 
