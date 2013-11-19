@@ -28,7 +28,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 /**
  * Handles channel method invocations.
- * 
+ *
  * @author Jonathan Halterman
  */
 public class ChannelHandler extends RetryableResource implements InvocationHandler {
@@ -90,13 +90,13 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   @Override
   public Object invoke(Object ignored, final Method method, final Object[] args) throws Throwable {
-    if (closed && Channel.class.equals(method.getDeclaringClass()))
+    if (closed && method.getDeclaringClass().isAssignableFrom(Channel.class))
       throw new AlreadyClosedException("Attempt to use closed channel", proxy);
 
     Callable<Object> callable = new Callable<Object>() {
       @Override
       public Object call() throws Exception {
-        if (ChannelConfig.class.equals(method.getDeclaringClass()))
+        if (method.getDeclaringClass().isAssignableFrom(ChannelConfig.class))
           return Reflection.invoke(config, method, args);
 
         String methodName = method.getName();
@@ -182,7 +182,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   /**
    * Atomically recovers the channel.
-   * 
+   *
    * @throws Exception when recovery fails due to a connection closure
    */
   synchronized void recoverChannel(boolean returnOnFailedRecovery) throws Exception {
@@ -261,7 +261,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   /**
    * Recovers the channel's consumers to given {@code channel}. If a consumer recovery fails due to
    * a channel closure, then we will not attempt to recover that consumer again.
-   * 
+   *
    * @throws Exception when recovery fails due to a resource closure
    */
   private void recoverConsumers(Map<String, Invocation> consumers) throws Exception {
