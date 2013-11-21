@@ -45,7 +45,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   private ShutdownSignalException lastShutdownSignal;
 
   // Delegate state
-  private final Map<String, Invocation> consumerInvocations = Collections.synchronizedMap();
+  final Map<String, Invocation> consumerInvocations = Collections.synchronizedMap();
   private List<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();
   private List<FlowListener> flowListeners = new CopyOnWriteArrayList<FlowListener>();
   private List<ReturnListener> returnListeners = new CopyOnWriteArrayList<ReturnListener>();
@@ -204,7 +204,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       delegate = callWithRetries(new Callable<Channel>() {
         @Override
         public Channel call() throws Exception {
-          log.info("Recovering {} ", ChannelHandler.this);
+          log.info("Recovering {}", ChannelHandler.this);
           previousMaxDeliveryTag = maxDeliveryTag;
           Channel channel = connectionHandler.createChannel(delegate.getChannelNumber());
           migrateConfiguration(channel);
