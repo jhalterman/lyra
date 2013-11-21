@@ -28,7 +28,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 /**
  * Handles connection method invocations.
- * 
+ *
  * @author Jonathan Halterman
  */
 public class ConnectionHandler extends RetryableResource implements InvocationHandler {
@@ -125,8 +125,8 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
             return channelProxy;
           }
 
-          return Reflection.invoke(
-              ConnectionConfig.class.equals(method.getDeclaringClass()) ? config : delegate,
+          return Reflection.invoke(method.getDeclaringClass().
+                  isAssignableFrom(ConnectionConfig.class) ? config : delegate,
               method, args);
         }
 
