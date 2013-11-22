@@ -15,7 +15,7 @@ public abstract class AbstractRecoveryTest extends AbstractFunctionalTest {
     final Waiter waiter = new Waiter();
     config.withConnectionListeners(new DefaultConnectionListener() {
       @Override
-      public void onRecovery(Connection connection) {
+      public void onChannelRecovery(Connection connection) {
         waiter.resume();
       }
 

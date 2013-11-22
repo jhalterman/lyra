@@ -9,6 +9,10 @@ import com.rabbitmq.client.Connection;
  */
 public abstract class DefaultConnectionListener implements ConnectionListener {
   @Override
+  public void onChannelRecovery(Connection connection) {
+  }
+
+  @Override
   public void onCreate(Connection connection) {
   }
 

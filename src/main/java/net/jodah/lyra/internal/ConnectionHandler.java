@@ -28,7 +28,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 /**
  * Handles connection method invocations.
- *
+ * 
  * @author Jonathan Halterman
  */
 public class ConnectionHandler extends RetryableResource implements InvocationHandler {
@@ -79,11 +79,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
             public void run() {
               try {
                 recoverConnection();
-                for (ConnectionListener listener : config.getConnectionListeners())
-                  try {
-                    listener.onRecovery(proxy);
-                  } catch (Exception ignore) {
-                  }
+
               } catch (Throwable t) {
                 log.error("Failed to recover connection {}", ConnectionHandler.this, t);
                 interruptWaiters();
@@ -125,9 +121,9 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
             return channelProxy;
           }
 
-          return Reflection.invoke(method.getDeclaringClass().
-                  isAssignableFrom(ConnectionConfig.class) ? config : delegate,
-              method, args);
+          return Reflection.invoke(
+              method.getDeclaringClass().isAssignableFrom(ConnectionConfig.class) ? config
+                  : delegate, method, args);
         }
 
         @Override
@@ -197,7 +193,8 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     }
   }
 
-  private void createConnection(RecurringPolicy<?> recurringPolicy, final boolean recovery) throws IOException {
+  private void createConnection(RecurringPolicy<?> recurringPolicy, final boolean recovery)
+      throws IOException {
     try {
       RecurringStats recurringStats = null;
       if (recovery) {
@@ -234,16 +231,28 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   private void recoverConnection() throws Throwable {
     createConnection(config.getConnectionRecoveryPolicy(), true);
 
-    // Recover channels
-    for (ChannelHandler channelHandler : channels.values())
-      if (channelHandler.canRecover())
-        channelHandler.recoverChannel(false);
-
     // Migrate connection state
     synchronized (shutdownListeners) {
       for (ShutdownListener listener : shutdownListeners)
         delegate.addShutdownListener(listener);
     }
+
+    for (ConnectionListener listener : config.getConnectionListeners())
+      try {
+        listener.onRecovery(proxy);
+      } catch (Exception ignore) {
+      }
+
+    // Recover channels
+    for (ChannelHandler channelHandler : channels.values())
+      if (channelHandler.canRecover())
+        channelHandler.recoverChannel(false);
+
+    for (ConnectionListener listener : config.getConnectionListeners())
+      try {
+        listener.onChannelRecovery(proxy);
+      } catch (Exception ignore) {
+      }
 
     circuit.close();
   }
