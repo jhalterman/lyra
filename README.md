@@ -104,6 +104,11 @@ Config config = new Config();
 
 Event listeners can be useful for setting up additional resources during recovery, such as auto-deleted exchanges and queues.
 
+## Cookbook
+
+See the [Lyra cookbook](https://github.com/jhalterman/lyra/wiki/Lyra-Cookbook) for handling various Rabbit use cases.
+
+
 ## Additional Notes
 
 #### On Recovery and Retry Policies
