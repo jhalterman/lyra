@@ -145,18 +145,22 @@ public abstract class AbstractFunctionalTest {
     return mockChannel;
   }
 
-  protected MockChannel mockChannel(int channelNumber) throws IOException {
+  protected MockChannel mockChannel(int channelNumber) {
     MockChannel mockChannel = channels.get(channelNumber);
-    if (mockChannel == null) {
-      mockChannel = new MockChannel();
-      Channel channel = mock(Channel.class);
-      when(connection.createChannel(eq(channelNumber))).thenReturn(channel);
-      when(channel.getChannelNumber()).thenReturn(channelNumber);
-      when(channel.toString()).thenReturn("channel-" + channelNumber);
-      mockChannel.proxy = connectionProxy.createChannel(channelNumber);
-      mockChannel.channelHandler = (ChannelHandler) Proxy.getInvocationHandler(mockChannel.proxy);
-      mockChannel.delegate = mockChannel.channelHandler.delegate;
-      channels.put(channelNumber, mockChannel);
+
+    try {
+      if (mockChannel == null) {
+        mockChannel = new MockChannel();
+        Channel channel = mock(Channel.class);
+        when(connection.createChannel(eq(channelNumber))).thenReturn(channel);
+        when(channel.getChannelNumber()).thenReturn(channelNumber);
+        when(channel.toString()).thenReturn("channel-" + channelNumber);
+        mockChannel.proxy = connectionProxy.createChannel(channelNumber);
+        mockChannel.channelHandler = (ChannelHandler) Proxy.getInvocationHandler(mockChannel.proxy);
+        mockChannel.delegate = mockChannel.channelHandler.delegate;
+        channels.put(channelNumber, mockChannel);
+      }
+    } catch (Exception notPossible) {
     }
 
     return mockChannel;

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.jodah.lyra.config.ChannelConfig;
 import net.jodah.lyra.config.Config;
@@ -40,6 +41,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   Channel delegate;
 
   // Recovery state
+  private AtomicBoolean recoveryPending = new AtomicBoolean();
   private RecurringStats recoveryStats;
   private Map<String, Invocation> recoveryConsumers;
   private ShutdownSignalException lastShutdownSignal;
@@ -79,6 +81,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
             @Override
             public void run() {
               try {
+                recoveryPending.set(true);
                 recoverChannel(true);
               } catch (Throwable ignore) {
               }
@@ -90,13 +93,13 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   @Override
   public Object invoke(Object ignored, final Method method, final Object[] args) throws Throwable {
-    if (closed && Channel.class.equals(method.getDeclaringClass()))
+    if (closed && method.getDeclaringClass().isAssignableFrom(Channel.class))
       throw new AlreadyClosedException("Attempt to use closed channel", proxy);
 
     Callable<Object> callable = new Callable<Object>() {
       @Override
       public Object call() throws Exception {
-        if (ChannelConfig.class.equals(method.getDeclaringClass()))
+        if (method.getDeclaringClass().isAssignableFrom(ChannelConfig.class))
           return Reflection.invoke(config, method, args);
 
         String methodName = method.getName();
@@ -186,6 +189,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
    * @throws Exception when recovery fails due to a connection closure
    */
   synchronized void recoverChannel(boolean returnOnFailedRecovery) throws Exception {
+    recoveryPending.set(false);
     if (circuit.isClosed())
       return;
 
@@ -211,7 +215,13 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           return channel;
         }
       }, config.getChannelRecoveryPolicy(), recoveryStats, true, false);
-      if (config.isConsumerRecoveryEnabled())
+      for (ChannelListener listener : config.getChannelListeners())
+        try {
+          if (!recoveryPending.get())
+            listener.onRecovery(proxy);
+        } catch (Exception ignore) {
+        }
+      if (config.isConsumerRecoveryEnabled() && !recoveryPending.get())
         recoverConsumers(recoveryConsumers);
       recoverySucceeded();
     } catch (Exception e) {
@@ -300,6 +310,12 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           }
         }
       }
+
+    for (ChannelListener listener : config.getChannelListeners())
+      try {
+        listener.onConsumerRecovery(proxy);
+      } catch (Exception ignore) {
+      }
   }
 
   private void recoveryComplete() {
@@ -320,12 +336,9 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   }
 
   private void recoverySucceeded() {
-    recoveryComplete();
-    circuit.close();
-    for (ChannelListener listener : config.getChannelListeners())
-      try {
-        listener.onRecovery(proxy);
-      } catch (Exception ignore) {
-      }
+    if (!recoveryPending.get()) {
+      recoveryComplete();
+      circuit.close();
+    }
   }
 }

@@ -5,6 +5,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.jodah.lyra.config.Config;
 import net.jodah.lyra.config.RecoveryPolicies;
@@ -15,6 +16,7 @@ import net.jodah.lyra.util.Duration;
 import org.testng.annotations.Test;
 
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ShutdownSignalException;
 
 /**
  * Tests channel recovery failures that occur via a connection's ShutdownListener. The general
@@ -66,15 +68,18 @@ public class ChannelRecoveryTest extends AbstractRecoveryTest {
    * recovered.
    */
   public void shouldHandleRecoveryFailureFromChannelListener() throws Throwable {
+    final AtomicBoolean shutdownCalled = new AtomicBoolean();
     config = new Config().withRetryPolicy(
         RetryPolicies.retryAlways().withInterval(Duration.millis(10)))
         .withRecoveryPolicy(RecoveryPolicies.recoverAlways())
         .withChannelListeners(new DefaultChannelListener() {
           @Override
           public void onRecovery(Channel channel) {
-            try {
-              channel.queueDelete("test-queue");
-            } catch (IOException e) {
+            if (!shutdownCalled.get() && channel == mockChannel(2).proxy) {
+              ShutdownSignalException e = nonRetryableChannelShutdownSignal();
+              shutdownCalled.set(true);
+              callShutdownListener(mockChannel(2).channelHandler, e);
+              throw e;
             }
           }
         });
@@ -82,11 +87,12 @@ public class ChannelRecoveryTest extends AbstractRecoveryTest {
     performRecovery(nonRetryableChannelShutdownSignal(), 1);
     verifyCxnCreations(2);
     verifyChannelCreations(1, 2);
-    verifyChannelCreations(2, 7);
+    verifyChannelCreations(2, 3);
     verifyConsumerCreations(1, 1, 2);
     verifyConsumerCreations(1, 2, 2);
-    verifyConsumerCreations(2, 5, 4);
-    verifyConsumerCreations(2, 6, 7);
+    verifyConsumerCreations(2, 5, 2); // Only recovered once since first failure prevents another
+                                      // recovery
+    verifyConsumerCreations(2, 6, 3);
   }
 
   /**

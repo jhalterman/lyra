@@ -9,6 +9,11 @@ import com.rabbitmq.client.Channel;
  */
 public interface ChannelListener {
   /**
+   * Called after the {@code channel} and its consumers are recovered from an unexpected closure.
+   */
+  void onConsumerRecovery(Channel channel);
+
+  /**
    * Called after the {@code channel} is successfully created.
    */
   void onCreate(Channel channel);
@@ -19,8 +24,9 @@ public interface ChannelListener {
   void onCreateFailure(Throwable failure);
 
   /**
-   * Called after the {@code channel}, along with its consumers, is recovered from an unexpected
-   * closure.
+   * Called after the {@code channel} is recovered from an unexpected closure, but before its
+   * consumers are recovered. This is useful for performing any pre-consumer setup that is required
+   * such as declaring exchanges and queues, and creating queue to exchange bindings.
    */
   void onRecovery(Channel channel);
 

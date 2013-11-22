@@ -11,7 +11,8 @@ import com.rabbitmq.client.Consumer;
 public interface ConsumerListener {
   /**
    * Called before the {@code consumer} is recovered from an unexpected closure on the
-   * {@code channel}.
+   * {@code channel}. This is useful for performing any pre-consumer setup that is required such as
+   * declaring exchanges and queues, and creating queue to exchange bindings.
    */
   void onBeforeRecovery(Consumer consumer, Channel channel);
 

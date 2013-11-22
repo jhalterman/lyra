@@ -220,8 +220,11 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
 
   /**
    * Asserts that concurrent failed invocations result in recovery being performed serially.
+   * 
+   * TODO rewrite this test since concurrent failures no longer result in concurrent recovery
+   * attempts. A ShutdownListener is only called once per recovery attempt.
    */
-  @Test(groups = "problematic")
+  @Test(enabled = false)
   public void shouldHandleConcurrentRetryableFailures() throws Throwable {
     mockConnection();
     mockConsumer(1, 1);
