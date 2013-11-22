@@ -3,6 +3,7 @@
 This release includes a few API changes:
 
 - RecoveryPolicy was broken out into a separate class.
+- RetryPolicy was moved to the net.jodah.lyra.config package.
 - ConnectionListener.onChannelRecovery was added.
 - ChannelListener.onConsumerRecovery was added.
 
