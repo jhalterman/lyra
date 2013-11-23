@@ -2,6 +2,8 @@ package net.jodah.lyra;
 
 import com.rabbitmq.client.Address;
 import com.rabbitmq.client.ConnectionFactory;
+import net.jodah.lyra.config.AddressResolver;
+import net.jodah.lyra.config.DefaultAddressResolver;
 import net.jodah.lyra.internal.util.Addresses;
 import net.jodah.lyra.internal.util.Assert;
 import net.jodah.lyra.util.Duration;
@@ -77,7 +79,7 @@ public class ConnectionOptions {
    */
   public Address[] getAddresses() {
     Address address = new Address(host, factory.getPort());
-    return addressResolver == null ? new Address[] {address} : new Address[] {addressResolver.nextAddress()};
+    return addressResolver == null ? new Address[] {address} : addressResolver.resolveAddresses();
   }
 
   /**

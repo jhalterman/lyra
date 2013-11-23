@@ -1,4 +1,4 @@
-package net.jodah.lyra;
+package net.jodah.lyra.config;
 
 import com.rabbitmq.client.Address;
 
@@ -9,5 +9,5 @@ import com.rabbitmq.client.Address;
  */
 public interface AddressResolver {
 
-    Address nextAddress();
+    Address[] resolveAddresses();
 }
