@@ -14,7 +14,7 @@ Add the Lyra dependency:
 <dependency>
   <groupId>net.jodah</groupId>
   <artifactId>lyra</artifactId>
-  <version>0.3.1</version>
+  <version>0.3.2</version>
 </dependency>
 ```
 
@@ -104,6 +104,11 @@ Config config = new Config();
 
 Event listeners can be useful for setting up additional resources during recovery, such as auto-deleted exchanges and queues.
 
+## Cookbook
+
+See the [Lyra cookbook](https://github.com/jhalterman/lyra/wiki/Lyra-Cookbook) for handling various Rabbit use cases.
+
+
 ## Additional Notes
 
 #### On Recovery and Retry Policies
@@ -127,7 +132,7 @@ When a Connection or Channel are closed unexpectedly recovery occurs in a backgr
 
 #### On Message Delivery
 
-When a channel is closed and recovered, any messages that were delivered but not acknowledged will be redelivered on the newly recovered channel. Attempts to ack/nack/reject messages that were delivered before the channel was recovered are simply ignored since their delivery tags will not be valid for the newly recovered channel. 
+When a channel is closed and recovered, any messages that were delivered but not acknowledged will be redelivered on the newly recovered channel. Attempts to ack/nack/reject messages that were delivered before the channel was recovered are simply ignored since their delivery tags will be invalid for the newly recovered channel. 
 
 Note, since channel recovery happens transparently, in effect when a channel is recovered and message redelivery occurs **messages may be seen more than once on the recovered channel**.
 

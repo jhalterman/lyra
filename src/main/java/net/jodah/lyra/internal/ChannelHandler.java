@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.jodah.lyra.config.ChannelConfig;
 import net.jodah.lyra.config.Config;
@@ -28,7 +29,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 /**
  * Handles channel method invocations.
- *
+ * 
  * @author Jonathan Halterman
  */
 public class ChannelHandler extends RetryableResource implements InvocationHandler {
@@ -40,12 +41,13 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   Channel delegate;
 
   // Recovery state
+  private AtomicBoolean recoveryPending = new AtomicBoolean();
   private RecurringStats recoveryStats;
   private Map<String, Invocation> recoveryConsumers;
   private ShutdownSignalException lastShutdownSignal;
 
   // Delegate state
-  private final Map<String, Invocation> consumerInvocations = Collections.synchronizedMap();
+  final Map<String, Invocation> consumerInvocations = Collections.synchronizedMap();
   private List<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();
   private List<FlowListener> flowListeners = new CopyOnWriteArrayList<FlowListener>();
   private List<ReturnListener> returnListeners = new CopyOnWriteArrayList<ReturnListener>();
@@ -79,6 +81,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
             @Override
             public void run() {
               try {
+                recoveryPending.set(true);
                 recoverChannel(true);
               } catch (Throwable ignore) {
               }
@@ -182,10 +185,11 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   /**
    * Atomically recovers the channel.
-   *
+   * 
    * @throws Exception when recovery fails due to a connection closure
    */
   synchronized void recoverChannel(boolean returnOnFailedRecovery) throws Exception {
+    recoveryPending.set(false);
     if (circuit.isClosed())
       return;
 
@@ -204,14 +208,20 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       delegate = callWithRetries(new Callable<Channel>() {
         @Override
         public Channel call() throws Exception {
-          log.info("Recovering {} ", ChannelHandler.this);
+          log.info("Recovering {}", ChannelHandler.this);
           previousMaxDeliveryTag = maxDeliveryTag;
           Channel channel = connectionHandler.createChannel(delegate.getChannelNumber());
           migrateConfiguration(channel);
           return channel;
         }
       }, config.getChannelRecoveryPolicy(), recoveryStats, true, false);
-      if (config.isConsumerRecoveryEnabled())
+      for (ChannelListener listener : config.getChannelListeners())
+        try {
+          if (!recoveryPending.get())
+            listener.onRecovery(proxy);
+        } catch (Exception ignore) {
+        }
+      if (config.isConsumerRecoveryEnabled() && !recoveryPending.get())
         recoverConsumers(recoveryConsumers);
       recoverySucceeded();
     } catch (Exception e) {
@@ -261,7 +271,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   /**
    * Recovers the channel's consumers to given {@code channel}. If a consumer recovery fails due to
    * a channel closure, then we will not attempt to recover that consumer again.
-   *
+   * 
    * @throws Exception when recovery fails due to a resource closure
    */
   private void recoverConsumers(Map<String, Invocation> consumers) throws Exception {
@@ -300,6 +310,12 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           }
         }
       }
+
+    for (ChannelListener listener : config.getChannelListeners())
+      try {
+        listener.onConsumerRecovery(proxy);
+      } catch (Exception ignore) {
+      }
   }
 
   private void recoveryComplete() {
@@ -320,12 +336,9 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   }
 
   private void recoverySucceeded() {
-    recoveryComplete();
-    circuit.close();
-    for (ChannelListener listener : config.getChannelListeners())
-      try {
-        listener.onRecovery(proxy);
-      } catch (Exception ignore) {
-      }
+    if (!recoveryPending.get()) {
+      recoveryComplete();
+      circuit.close();
+    }
   }
 }
