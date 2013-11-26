@@ -1,30 +1,30 @@
 package net.jodah.lyra;
 
+import com.rabbitmq.client.Address;
+import com.rabbitmq.client.ConnectionFactory;
+import net.jodah.lyra.config.AddressResolver;
+import net.jodah.lyra.config.DefaultAddressResolver;
+import net.jodah.lyra.internal.util.Addresses;
+import net.jodah.lyra.internal.util.Assert;
+import net.jodah.lyra.util.Duration;
+
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-
-import net.jodah.lyra.internal.util.Addresses;
-import net.jodah.lyra.internal.util.Assert;
-import net.jodah.lyra.util.Duration;
-
-import com.rabbitmq.client.Address;
-import com.rabbitmq.client.ConnectionFactory;
-
 /**
  * Connection options. Changes will not effect connections that have already been created.
- * 
+ *
  * @author Jonathan Halterman
  */
 public class ConnectionOptions {
   private ConnectionFactory factory;
   private String host = "localhost";
-  private Address[] addresses;
+  private AddressResolver addressResolver;
   private String name;
   private ExecutorService executor;
 
@@ -34,7 +34,7 @@ public class ConnectionOptions {
 
   /**
    * Creates a new Options object for the {@code connectionFactory}.
-   * 
+   *
    * @throws NullPointerException if {@code connectionFactory} is null
    */
   public ConnectionOptions(ConnectionFactory connectionFactory) {
@@ -57,7 +57,7 @@ public class ConnectionOptions {
     factory.setSaslConfig(options.factory.getSaslConfig());
     factory.setSocketFactory(options.factory.getSocketFactory());
     host = options.host;
-    addresses = options.addresses;
+    addressResolver = options.addressResolver;
     name = options.name;
     executor = options.executor;
   }
@@ -71,14 +71,15 @@ public class ConnectionOptions {
 
   /**
    * Returns the addresses to attempt connections to, in round-robin order.
-   * 
+   *
    * @see #withAddresses(Address...)
    * @see #withAddresses(String)
    * @see #withHost(String)
    * @see #withHosts(String...)
    */
   public Address[] getAddresses() {
-    return addresses == null ? new Address[] { new Address(host, factory.getPort()) } : addresses;
+    Address address = new Address(host, factory.getPort());
+    return addressResolver == null ? new Address[] {address} : addressResolver.resolveAddresses();
   }
 
   /**
@@ -90,7 +91,7 @@ public class ConnectionOptions {
 
   /**
    * Returns the consumer executor.
-   * 
+   *
    * @see #withConsumerExecutor(ExecutorService)
    */
   public ExecutorService getConsumerExecutor() {
@@ -102,29 +103,41 @@ public class ConnectionOptions {
   }
 
   /**
+   * Sets the {@code addressResolver} to resolve addresses
+   *
+   * @throws NullPointerException if {@code addressResolver} is null
+   */
+  public ConnectionOptions withAddressResolver(AddressResolver addressResolver) {
+    this.addressResolver = Assert.notNull(addressResolver, "addressResolver");
+    return this;
+  }
+
+  /**
    * Sets the {@code addresses} to attempt connections to, in round-robin order.
-   * 
+   *
    * @throws NullPointerException if {@code addresses} is null
    */
   public ConnectionOptions withAddresses(Address... addresses) {
-    this.addresses = Assert.notNull(addresses, "addresses");
+    Address[] _addresses = Assert.notNull(addresses, "addresses");
+    this.addressResolver = new DefaultAddressResolver(_addresses);
     return this;
   }
 
   /**
    * Sets the {@code addresses}.
-   * 
+   *
    * @param addresses formatted as "host1[:port],host2[:port]", etc.
    * @throws NullPointerException if {@code addresses} is null
    */
   public ConnectionOptions withAddresses(String addresses) {
-    this.addresses = Address.parseAddresses(Assert.notNull(addresses, "addresses"));
+    Address[] _addresses = Address.parseAddresses(Assert.notNull(addresses, "addresses"));
+    this.addressResolver = new DefaultAddressResolver(_addresses);
     return this;
   }
 
   /**
    * Sets the client properties.
-   * 
+   *
    * @throws NullPointerException if {@code clientProperties} is null
    */
   public ConnectionOptions withClientProperties(Map<String, Object> clientProperties) {
@@ -134,7 +147,7 @@ public class ConnectionOptions {
 
   /**
    * Sets the {@code connectionFactory}.
-   * 
+   *
    * @throws NullPointerException if {@code connectionFactory} is null
    */
   public ConnectionOptions withConnectionFactory(ConnectionFactory connectionFactory) {
@@ -144,7 +157,7 @@ public class ConnectionOptions {
 
   /**
    * Set the connection timeout, zero for infinite, for an individual connection attempt.
-   * 
+   *
    * @throws NullPointerException if {@code connectionTimeout} is null
    */
   public ConnectionOptions withConnectionTimeout(Duration connectionTimeout) {
@@ -155,7 +168,7 @@ public class ConnectionOptions {
   /**
    * Sets the executor used to handle consumer callbacks. The {@code executor} will not be shutdown
    * when a connection is closed.
-   * 
+   *
    * @throws NullPointerException if {@code executor} is null
    */
   public ConnectionOptions withConsumerExecutor(ExecutorService executor) {
@@ -165,7 +178,7 @@ public class ConnectionOptions {
 
   /**
    * Sets the {@code host}.
-   * 
+   *
    * @throws NullPointerException if {@code host} is null
    */
   public ConnectionOptions withHost(String host) {
@@ -175,17 +188,18 @@ public class ConnectionOptions {
 
   /**
    * Sets the {@code hosts} to attempt connections to, in round-robin order.
-   * 
+   *
    * @throws NullPointerException if {@code hosts} is null
    */
   public ConnectionOptions withHosts(String... hosts) {
-    this.addresses = Addresses.addressesFor(Assert.notNull(hosts, "hosts"), 5672);
+    Address[] _addresses = Addresses.addressesFor(Assert.notNull(hosts, "hosts"), 5672);
+    this.addressResolver = new DefaultAddressResolver(_addresses);
     return this;
   }
 
   /**
    * Sets the connection name. Used for logging and consumer thread naming.
-   * 
+   *
    * @throws NullPointerException if {@code name} is null
    */
   public ConnectionOptions withName(String name) {
@@ -211,7 +225,7 @@ public class ConnectionOptions {
 
   /**
    * Set the requested heartbeat, zero for none.
-   * 
+   *
    * @throws NullPointerException if {@code requestedHeartbeat} is null
    */
   public ConnectionOptions withRequestedHeartbeat(Duration requestedHeartbeat) {
@@ -221,7 +235,7 @@ public class ConnectionOptions {
 
   /**
    * Sets the SocketFactory to create connections with.
-   * 
+   *
    * @throws NullPointerException if {@code hosts} is null
    */
   public ConnectionOptions withSocketFactory(SocketFactory socketFactory) {
@@ -239,7 +253,7 @@ public class ConnectionOptions {
 
   /**
    * Sets the initialized {@code sslContext} to use.
-   * 
+   *
    * @throws NullPointerException if {@code sslContext} is null
    */
   public ConnectionOptions withSslProtocol(SSLContext sslContext) {
@@ -249,7 +263,7 @@ public class ConnectionOptions {
 
   /**
    * Sets the {@code sslProtocol} to use.
-   * 
+   *
    * @throws NullPointerException if {@code sslProtocol} is null
    */
   public ConnectionOptions withSslProtocol(String sslProtocol) throws NoSuchAlgorithmException,
@@ -260,7 +274,7 @@ public class ConnectionOptions {
 
   /**
    * Sets the {@code sslProtocol} and {@code trustManager} to use.
-   * 
+   *
    * @throws NullPointerException if {@code sslProtocol} or {@code trustManager} are null
    */
   public ConnectionOptions withSslProtocol(String sslProtocol, TrustManager trustManager)
@@ -272,7 +286,7 @@ public class ConnectionOptions {
 
   /**
    * Sets the username.
-   * 
+   *
    * @throws NullPointerException if {@code username} is null
    */
   public ConnectionOptions withUsername(String username) {
@@ -282,7 +296,7 @@ public class ConnectionOptions {
 
   /**
    * Sets the virtual host.
-   * 
+   *
    * @throws NullPointerException if {@code virtualHost} is null
    */
   public ConnectionOptions withVirtualHost(String virtualHost) {

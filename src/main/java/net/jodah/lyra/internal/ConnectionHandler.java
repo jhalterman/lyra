@@ -1,5 +1,15 @@
 package net.jodah.lyra.internal;
 
+import com.rabbitmq.client.*;
+import net.jodah.lyra.ConnectionOptions;
+import net.jodah.lyra.config.Config;
+import net.jodah.lyra.config.ConfigurableChannel;
+import net.jodah.lyra.config.ConnectionConfig;
+import net.jodah.lyra.event.ChannelListener;
+import net.jodah.lyra.event.ConnectionListener;
+import net.jodah.lyra.internal.util.Reflection;
+import net.jodah.lyra.internal.util.concurrent.NamedThreadFactory;
+
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -11,24 +21,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.jodah.lyra.ConnectionOptions;
-import net.jodah.lyra.config.Config;
-import net.jodah.lyra.config.ConfigurableChannel;
-import net.jodah.lyra.config.ConnectionConfig;
-import net.jodah.lyra.event.ChannelListener;
-import net.jodah.lyra.event.ConnectionListener;
-import net.jodah.lyra.internal.util.Reflection;
-import net.jodah.lyra.internal.util.concurrent.NamedThreadFactory;
-
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.ShutdownListener;
-import com.rabbitmq.client.ShutdownSignalException;
-
 /**
  * Handles connection method invocations.
- * 
+ *
  * @author Jonathan Halterman
  */
 public class ConnectionHandler extends RetryableResource implements InvocationHandler {
@@ -205,13 +200,13 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       delegate = callWithRetries(new Callable<Connection>() {
         @Override
         public Connection call() throws IOException {
-          log.info("{} connection {} to {}", recovery ? "Recovering" : "Creating", connectionName,
-              options.getAddresses());
+          Address[] addresses = options.getAddresses();
+          log.info("{} connection {} to {}", recovery ? "Recovering" : "Creating", connectionName, addresses);
           ExecutorService consumerPool = options.getConsumerExecutor() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
               String.format("rabbitmq-%s-consumer", connectionName)))
               : options.getConsumerExecutor();
           ConnectionFactory cxnFactory = options.getConnectionFactory();
-          Connection connection = cxnFactory.newConnection(consumerPool, options.getAddresses());
+          Connection connection = cxnFactory.newConnection(consumerPool, addresses);
           final String amqpAddress = String.format("amqp://%s:%s/%s", connection.getAddress()
               .getHostAddress(), connection.getPort(), "/".equals(cxnFactory.getVirtualHost()) ? ""
               : cxnFactory.getVirtualHost());
