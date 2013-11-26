@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.jodah.lyra.internal.util.Assert;
@@ -15,9 +16,9 @@ public class Duration implements Serializable {
   private static final long serialVersionUID = 8408159221215361695L;
   /** A duration of Long.MAX_VALUE Days */
   public static final Duration INFINITE = new Duration();
-  private static final Pattern PATTERN = Pattern.compile("[\\d]+[\\s]*(" + "ns|nanosecond(s)?|"
+  private static final Pattern PATTERN = Pattern.compile("(∞|inf|infinite)|" + "(([\\d]+)[\\s]*(" + "ns|nanosecond(s)?|"
       + "us|microsecond(s)?|" + "ms|millisecond(s)?|" + "s|second(s)?|" + "m|minute(s)?|"
-      + "h|hour(s)?|" + "d|day(s)?" + ')');
+      + "h|hour(s)?|" + "d|day(s)?" + "))");
   private static final Map<String, TimeUnit> SUFFIXES;
 
   public final long length;
@@ -264,14 +265,17 @@ public class Duration implements Serializable {
    * Returns a Duration from the parsed {@code duration}.
    */
   public static Duration of(String duration) {
-    Assert.isTrue(PATTERN.matcher(duration).matches(), "Invalid duration: %s", duration);
-    int i = 0;
-    for (; i < duration.length(); i++)
-      if (Character.isLetter(duration.charAt(i)))
-        break;
-    String unit = duration.subSequence(0, i).toString().trim();
-    String dur = duration.subSequence(i, duration.length()).toString();
-    return new Duration(Long.parseLong(unit), SUFFIXES.get(dur));
+    Matcher matcher = PATTERN.matcher(duration);
+    Assert.isTrue(matcher.matches(), "Invalid duration: %s", duration);
+
+    if( matcher.group(1) != null ){
+      return INFINITE;
+    }
+    else{
+      String unit = matcher.group(4);
+      String value = matcher.group(3);
+      return new Duration(Long.parseLong(value), SUFFIXES.get(unit));
+    }
   }
 
   /**
