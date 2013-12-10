@@ -79,7 +79,6 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
             public void run() {
               try {
                 recoverConnection();
-
               } catch (Throwable t) {
                 log.error("Failed to recover connection {}", ConnectionHandler.this, t);
                 interruptWaiters();
