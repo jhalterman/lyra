@@ -212,7 +212,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           previousMaxDeliveryTag = maxDeliveryTag;
           Channel channel = connectionHandler.createChannel(delegate.getChannelNumber());
           migrateConfiguration(channel);
-          log.info("Recovered {} ", ChannelHandler.this);
+          log.info("Recovered {}", ChannelHandler.this);
           return channel;
         }
       }, config.getChannelRecoveryPolicy(), recoveryStats, true, false);
