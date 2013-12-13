@@ -40,6 +40,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   private final ConnectionOptions options;
   private final Config config;
   private final String connectionName;
+  private final ExecutorService consumerThreadPool;
   private final Map<String, ChannelHandler> channels = new ConcurrentHashMap<String, ChannelHandler>();
   private Connection proxy;
   private Connection delegate;
@@ -57,6 +58,8 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     this.config = config;
     this.connectionName = options.getName() == null ? String.format("cxn-%s",
         CONNECTION_COUNTER.incrementAndGet()) : options.getName();
+    consumerThreadPool = options.getConsumerExecutor() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
+        String.format("rabbitmq-%s-consumer", connectionName))) : options.getConsumerExecutor();
 
     createConnection();
     ShutdownListener listener = new ConnectionShutdownListener();
@@ -81,6 +84,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
                 recoverConnection();
               } catch (Throwable t) {
                 log.error("Failed to recover connection {}", ConnectionHandler.this, t);
+                connectionClosed();
                 interruptWaiters();
                 for (ConnectionListener listener : config.getConnectionListeners())
                   try {
@@ -90,7 +94,8 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
               }
             }
           });
-      }
+      } else
+        connectionClosed();
     }
   }
 
@@ -183,6 +188,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
         }
     } catch (IOException e) {
       log.error("Failed to create connection {}", connectionName, e);
+      connectionClosed();
       for (ConnectionListener listener : config.getConnectionListeners())
         try {
           listener.onCreateFailure(e);
@@ -206,11 +212,9 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
         public Connection call() throws IOException {
           log.info("{} connection {} to {}", recovery ? "Recovering" : "Creating", connectionName,
               options.getAddresses());
-          ExecutorService consumerPool = options.getConsumerExecutor() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
-              String.format("rabbitmq-%s-consumer", connectionName)))
-              : options.getConsumerExecutor();
           ConnectionFactory cxnFactory = options.getConnectionFactory();
-          Connection connection = cxnFactory.newConnection(consumerPool, options.getAddresses());
+          Connection connection = cxnFactory.newConnection(consumerThreadPool,
+              options.getAddresses());
           final String amqpAddress = String.format("amqp://%s:%s/%s", connection.getAddress()
               .getHostAddress(), connection.getPort(), "/".equals(cxnFactory.getVirtualHost()) ? ""
               : cxnFactory.getVirtualHost());
@@ -254,5 +258,10 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       }
 
     circuit.close();
+  }
+
+  private void connectionClosed() {
+    if (options.getConsumerExecutor() == null)
+      consumerThreadPool.shutdown();
   }
 }
