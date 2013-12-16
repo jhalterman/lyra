@@ -65,7 +65,7 @@ public final class Connections {
     ConnectionHandler handler = new ConnectionHandler(options.copy(), new Config(config));
     ConfigurableConnection proxy = (ConfigurableConnection) Proxy.newProxyInstance(
         Connection.class.getClassLoader(), CONNECTION_TYPES, handler);
-    handler.setProxy(proxy);
+    handler.createConnection(proxy);
     return proxy;
   }
 }

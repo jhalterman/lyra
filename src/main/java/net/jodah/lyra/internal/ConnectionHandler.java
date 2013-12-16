@@ -60,11 +60,6 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
         CONNECTION_COUNTER.incrementAndGet()) : options.getName();
     consumerThreadPool = options.getConsumerExecutor() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
         String.format("rabbitmq-%s-consumer", connectionName))) : options.getConsumerExecutor();
-
-    createConnection();
-    ShutdownListener listener = new ConnectionShutdownListener();
-    shutdownListeners.add(listener);
-    delegate.addShutdownListener(listener);
   }
 
   /**
@@ -96,6 +91,30 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
           });
       } else
         connectionClosed();
+    }
+  }
+
+  public void createConnection(Connection proxy) throws IOException {
+    try {
+      this.proxy = proxy;
+      createConnection(config.getConnectRetryPolicy(), false);
+      ShutdownListener shutdownListener = new ConnectionShutdownListener();
+      shutdownListeners.add(shutdownListener);
+      delegate.addShutdownListener(shutdownListener);
+      for (ConnectionListener listener : config.getConnectionListeners())
+        try {
+          listener.onCreate(proxy);
+        } catch (Exception ignore) {
+        }
+    } catch (IOException e) {
+      log.error("Failed to create connection {}", connectionName, e);
+      connectionClosed();
+      for (ConnectionListener listener : config.getConnectionListeners())
+        try {
+          listener.onCreateFailure(e);
+        } catch (Exception ignore) {
+        }
+      throw e;
     }
   }
 
@@ -149,10 +168,6 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     }
   }
 
-  public void setProxy(Connection proxy) {
-    this.proxy = proxy;
-  }
-
   @Override
   public String toString() {
     return connectionName;
@@ -178,24 +193,9 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       channelHandler.resourceClosed();
   }
 
-  private void createConnection() throws IOException {
-    try {
-      createConnection(config.getConnectRetryPolicy(), false);
-      for (ConnectionListener listener : config.getConnectionListeners())
-        try {
-          listener.onCreate(proxy);
-        } catch (Exception ignore) {
-        }
-    } catch (IOException e) {
-      log.error("Failed to create connection {}", connectionName, e);
-      connectionClosed();
-      for (ConnectionListener listener : config.getConnectionListeners())
-        try {
-          listener.onCreateFailure(e);
-        } catch (Exception ignore) {
-        }
-      throw e;
-    }
+  private void connectionClosed() {
+    if (options.getConsumerExecutor() == null)
+      consumerThreadPool.shutdown();
   }
 
   private void createConnection(RecurringPolicy<?> recurringPolicy, final boolean recovery)
@@ -258,10 +258,5 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       }
 
     circuit.close();
-  }
-
-  private void connectionClosed() {
-    if (options.getConsumerExecutor() == null)
-      consumerThreadPool.shutdown();
   }
 }
