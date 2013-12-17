@@ -121,6 +121,7 @@ public abstract class AbstractFunctionalTest {
     connectionProxy = (ConfigurableConnection) Proxy.newProxyInstance(
         Connection.class.getClassLoader(), new Class<?>[] { ConfigurableConnection.class },
         connectionHandler);
+    connectionHandler.createConnection(connectionProxy);
     channels = new HashMap<Integer, MockChannel>();
   }
 
