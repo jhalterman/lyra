@@ -16,9 +16,9 @@ public class Duration implements Serializable {
   private static final long serialVersionUID = 8408159221215361695L;
   /** A duration of Long.MAX_VALUE Days */
   public static final Duration INFINITE = new Duration();
-  private static final Pattern PATTERN = Pattern.compile("(∞|inf|infinite)|" + "(([\\d]+)[\\s]*(" + "ns|nanosecond(s)?|"
-      + "us|microsecond(s)?|" + "ms|millisecond(s)?|" + "s|second(s)?|" + "m|minute(s)?|"
-      + "h|hour(s)?|" + "d|day(s)?" + "))");
+  private static final Pattern PATTERN = Pattern.compile("(∞|inf|infinite)|" + "(([\\d]+)[\\s]*("
+      + "ns|nanosecond(s)?|" + "us|microsecond(s)?|" + "ms|millisecond(s)?|" + "s|second(s)?|"
+      + "m|minute(s)?|" + "h|hour(s)?|" + "d|day(s)?" + "))");
   private static final Map<String, TimeUnit> SUFFIXES;
 
   public final long length;
@@ -262,16 +262,22 @@ public class Duration implements Serializable {
   }
 
   /**
-   * Returns a Duration from the parsed {@code duration}.
+   * Returns a Duration from the parsed {@code duration}. Example:
+   * 
+   * <pre>
+   * 5 s
+   * 5 seconds
+   * 10m
+   * 10 minutes
+   * </pre>
    */
   public static Duration of(String duration) {
     Matcher matcher = PATTERN.matcher(duration);
     Assert.isTrue(matcher.matches(), "Invalid duration: %s", duration);
 
-    if( matcher.group(1) != null ){
+    if (matcher.group(1) != null) {
       return INFINITE;
-    }
-    else{
+    } else {
       String unit = matcher.group(4);
       String value = matcher.group(3);
       return new Duration(Long.parseLong(value), SUFFIXES.get(unit));
@@ -286,14 +292,7 @@ public class Duration implements Serializable {
   }
 
   /**
-   * Returns a Duration of {@code count} seconds. Example:
-   * 
-   * <pre>
-   * 5 s
-   * 5 seconds
-   * 10m
-   * 10 minutes
-   * </pre>
+   * Returns a Duration of {@code count} seconds.
    */
   public static Duration secs(long count) {
     return new Duration(count, TimeUnit.SECONDS);
