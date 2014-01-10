@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources such as connections, channels and consumers when server or network failures occur. Lyra also supports automatic invocation retries, and exposes a simple, lightweight API built around the [Java AMQP client](http://www.rabbitmq.com/java-client.html) library.
+Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources such as connections, channels and consumers when various [failure scenarios][failure-scenarios] occur. Lyra also supports automatic invocation retries, and exposes a simple, lightweight API built around the [Java AMQP client](http://www.rabbitmq.com/java-client.html) library.
 
 ## Setup
 
@@ -32,7 +32,7 @@ Also add the latest [amqp-client] dependency:
 
 #### Resource Recovery
 
-The key feature of Lyra is its ability to automatically recover resources such as [Connections][Connection], [Channels][Channel] and [Consumers][Consumer] when unexpected failures occur. To start, create a `Config` object, specifying a recovery policy:
+The key feature of Lyra is its ability to automatically recover resources such as [Connections][Connection], [Channels][Channel] and [Consumers][Consumer] when [unexpected failures][failure-scenarios] occur. To start, create a `Config` object, specifying a recovery policy:
 
 ```java
 Config config = new Config()
@@ -104,16 +104,12 @@ Config config = new Config();
 
 Event listeners can be useful for setting up additional resources during recovery, such as auto-deleted exchanges and queues.
 
-## Cookbook
-
-See the [Lyra cookbook](https://github.com/jhalterman/lyra/wiki/Lyra-Cookbook) for handling various Rabbit use cases.
-
 
 ## Additional Notes
 
 #### On Recovery and Retry Policies
 
-[Recovery][recovery-policy] and [retry][retry-policy] policies allow you to specify:
+[Recovery][recovery-policy] and [Retry][retry-policy] policies allow you to specify:
 
 * The maximum number of attempts to perform
 * The maxmimum duration that attempts should be performed for
@@ -136,13 +132,15 @@ When a channel is closed and recovered, any messages that were delivered but not
 
 Note, since channel recovery happens transparently, in effect when a channel is recovered and message redelivery occurs **messages may be seen more than once on the recovered channel**.
 
-## Docs
+## Additional Resources
 
-JavaDocs are available [here](https://jhalterman.github.com/lyra/javadoc).
+* JavaDocs are available [here](https://jhalterman.github.com/lyra/javadoc).
+* The various failure scenarios handled by Lyra are described [here][failure-scenarios].
+* See the [Lyra cookbook][cookbook] for handling specific RabbitMQ use cases.
 
 ## License
 
-Copyright 2013 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+Copyright 2013-2014 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 [Connection]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Connection.html
 [Channel]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html
@@ -157,3 +155,5 @@ Copyright 2013 Jonathan Halterman - Released under the [Apache 2.0 license](http
 [consumer-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ConsumerConfig.html
 [recovery-policy]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/RecoveryPolicy.html
 [retry-policy]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/RetryPolicy.html
+[cookbook]: https://github.com/jhalterman/lyra/wiki/Lyra-Cookbook
+[failure-scenarios]: https://github.com/jhalterman/lyra/wiki/Failure-Scenarios
