@@ -4,7 +4,6 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 import net.jodah.lyra.config.RetryPolicy;
-import net.jodah.lyra.internal.RecurringStats;
 import net.jodah.lyra.util.Duration;
 
 import org.testng.annotations.Test;

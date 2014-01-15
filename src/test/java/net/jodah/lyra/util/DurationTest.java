@@ -1,9 +1,9 @@
 package net.jodah.lyra.util;
 
+import static org.junit.Assert.fail;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import static org.junit.Assert.fail;
 
 @Test
 public class DurationTest {

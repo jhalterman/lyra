@@ -2,7 +2,6 @@ package net.jodah.lyra.internal.util.concurrent;
 
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
-import net.jodah.lyra.internal.util.concurrent.ReentrantCircuit;
 import net.jodah.lyra.util.Duration;
 
 import org.jodah.concurrentunit.Waiter;
