@@ -25,8 +25,9 @@ public interface ChannelListener {
 
   /**
    * Called after the {@code channel} is recovered from an unexpected closure, but before its
-   * consumers are recovered. This is useful for performing any pre-consumer setup that is required
-   * such as declaring exchanges and queues, and creating queue to exchange bindings.
+   * consumers along with associated queues, exchanges, and bindings are recovered. This is useful
+   * for performing any pre-consumer setup that is required such as declaring exchanges and queues,
+   * and creating queue to exchange bindings.
    */
   void onRecovery(Channel channel);
 

@@ -28,6 +28,8 @@ public class Config implements ConnectionConfig {
   private RetryPolicy connectionRetryPolicy;
   private RecoveryPolicy channelRecoveryPolicy;
   private RetryPolicy channelRetryPolicy;
+  private Boolean exchangeRecovery;
+  private Boolean queueRecovery;
   private Boolean consumerRecovery;
   private Collection<ConnectionListener> connectionListeners;
   private Collection<ChannelListener> channelListeners;
@@ -104,12 +106,23 @@ public class Config implements ConnectionConfig {
 
   @Override
   public boolean isConsumerRecoveryEnabled() {
-    Boolean result = isConsumerRecoveryEnabledInternal();
-    if (result != null)
-      return result;
+    Boolean result = consumerRecovery != null ? consumerRecovery
+        : parent != null ? parent.isConsumerRecoveryEnabled() : null;
+    return isRecoveryEnabled(result);
+  }
 
-    RecoveryPolicy policy = getChannelRecoveryPolicy();
-    return policy != null && policy.allowsAttempts();
+  @Override
+  public boolean isExchangeRecoveryEnabled() {
+    Boolean result = exchangeRecovery != null ? exchangeRecovery
+        : parent != null ? parent.isExchangeRecoveryEnabled() : null;
+    return isRecoveryEnabled(result);
+  }
+
+  @Override
+  public boolean isQueueRecoveryEnabled() {
+    Boolean result = queueRecovery != null ? queueRecovery
+        : parent != null ? parent.isQueueRecoveryEnabled() : null;
+    return isRecoveryEnabled(result);
   }
 
   @Override
@@ -170,6 +183,16 @@ public class Config implements ConnectionConfig {
     return this;
   }
 
+  @Override
+  public ConsumerConfig withExchangeRecovery(boolean enabled) {
+    return null;
+  }
+
+  @Override
+  public ConsumerConfig withQueueRecovery(boolean enabled) {
+    return null;
+  }
+
   /**
    * Sets the policy to use for the recovery of Connections/Channels/Consumers after an unexpected
    * Connection/Channel closure. Can be overridden with specific policies via
@@ -193,9 +216,12 @@ public class Config implements ConnectionConfig {
     return this;
   }
 
-  private Boolean isConsumerRecoveryEnabledInternal() {
-    return consumerRecovery != null ? consumerRecovery
-        : parent != null ? parent.isConsumerRecoveryEnabled() : null;
+  private Boolean isRecoveryEnabled(Boolean recovery) {
+    if (recovery != null)
+      return recovery;
+
+    RecoveryPolicy policy = getChannelRecoveryPolicy();
+    return policy != null && policy.allowsAttempts();
   }
 
   /**

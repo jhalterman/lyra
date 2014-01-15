@@ -24,8 +24,8 @@ public interface ConnectionListener {
   void onCreateFailure(Throwable failure);
 
   /**
-   * Called after the {@code connection} is recovered from an unexpected closure, but before its
-   * channels are recovered.
+   * Called after the {@code connection} is recovered from an unexpected closure, but before the
+   * exchanges, queues, bindings, channels and consumers are recovered.
    */
   void onRecovery(Connection connection);
 
