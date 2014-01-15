@@ -116,6 +116,4 @@ abstract class RetryableResource {
     circuit.interruptWaiters();
     retryWaiter.interruptWaiters();
   }
-
-  abstract void resourceClosed();
 }
