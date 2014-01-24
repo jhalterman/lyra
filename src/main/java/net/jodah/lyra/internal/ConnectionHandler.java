@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,9 +20,12 @@ import net.jodah.lyra.config.ConfigurableChannel;
 import net.jodah.lyra.config.ConnectionConfig;
 import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConnectionListener;
+import net.jodah.lyra.internal.util.ArrayListMultiMap;
+import net.jodah.lyra.internal.util.Collections;
 import net.jodah.lyra.internal.util.Reflection;
 import net.jodah.lyra.internal.util.concurrent.NamedThreadFactory;
 
+import com.rabbitmq.client.AMQP.Queue;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -27,7 +33,7 @@ import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 
 /**
- * Handles connection method invocations.
+ * Handles connection method invocations and performs connection recovery.
  * 
  * @author Jonathan Halterman
  */
@@ -37,6 +43,10 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   static final ExecutorService RECOVERY_EXECUTORS = Executors.newCachedThreadPool(new NamedThreadFactory(
       "lyra-recovery-%s"));
 
+  final Map<String, ResourceDeclaration> exchangeDeclarations = Collections.synchronizedMap();
+  final ArrayListMultiMap<String, Binding> exchangeBindings = Collections.arrayListMultiMap();
+  final Map<String, QueueDeclaration> queueDeclarations = Collections.synchronizedMap();
+  final ArrayListMultiMap<String, Binding> queueBindings = Collections.arrayListMultiMap();
   private final ConnectionOptions options;
   private final Config config;
   private final String connectionName;
@@ -63,12 +73,12 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   }
 
   /**
-   * Handles connection closures.
+   * Handles connection shutdowns.
    */
   private class ConnectionShutdownListener implements ShutdownListener {
     @Override
     public void shutdownCompleted(ShutdownSignalException e) {
-      resourceClosed();
+      connectionShutdown();
       if (!e.isInitiatedByApplication()) {
         log.error("Connection {} was closed unexpectedly", ConnectionHandler.this);
         if (canRecover())
@@ -186,16 +196,15 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     channels.remove(Integer.valueOf(channelNumber).toString());
   }
 
-  @Override
-  void resourceClosed() {
-    circuit.open();
-    for (ChannelHandler channelHandler : channels.values())
-      channelHandler.resourceClosed();
-  }
-
   private void connectionClosed() {
     if (options.getConsumerExecutor() == null)
       consumerThreadPool.shutdown();
+  }
+
+  private void connectionShutdown() {
+    circuit.open();
+    for (ChannelHandler channelHandler : channels.values())
+      channelHandler.channelShutdown();
   }
 
   private void createConnection(RecurringPolicy<?> recurringPolicy, final boolean recovery)
@@ -246,10 +255,13 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       } catch (Exception ignore) {
       }
 
+    // Recover exchanges and queues
+    recoverExchangesAndQueues();
+
     // Recover channels
     for (ChannelHandler channelHandler : channels.values())
       if (channelHandler.canRecover())
-        channelHandler.recoverChannel(false);
+        channelHandler.recoverChannel(true);
 
     for (ConnectionListener listener : config.getConnectionListeners())
       try {
@@ -258,5 +270,104 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       }
 
     circuit.close();
+  }
+
+  /** Recover exchanges, queues and bindings via a one-off channel. */
+  private void recoverExchangesAndQueues() {
+    boolean canRecoverExchanges = config.isExchangeRecoveryEnabled()
+        && (!exchangeDeclarations.isEmpty() || !exchangeBindings.isEmpty());
+    boolean canRecoverQueues = config.isQueueRecoveryEnabled()
+        && (!queueDeclarations.isEmpty() || !queueBindings.isEmpty());
+
+    if (canRecoverExchanges || canRecoverQueues) {
+      Channel channel = null;
+
+      try {
+        channel = delegate.createChannel();
+        if (canRecoverExchanges)
+          recoverExchanges(channel);
+        if (canRecoverQueues)
+          recoverQueues(channel);
+      } catch (Exception e) {
+        log.error("Failed to recover exchanges and queues via {}", this, e);
+      } finally {
+        try {
+          if (channel != null)
+            channel.close();
+        } catch (IOException ignore) {
+        }
+      }
+    }
+  }
+
+  /** Recovers exchanges and bindings using the {@code channel}. */
+  private void recoverExchanges(Channel channel) {
+    for (Map.Entry<String, ResourceDeclaration> entry : exchangeDeclarations.entrySet())
+      try {
+        log.info("Recovering exchange {} via {}", entry.getKey(), this);
+        entry.getValue().invoke(channel);
+      } catch (Exception e) {
+        log.error("Failed to recover exchange {} via {}", entry.getKey(), this, e);
+      }
+
+    for (Binding binding : exchangeBindings.values())
+      try {
+        log.info("Recovering exchange binding from {} to {} with {} via {}", binding.source,
+            binding.destination, binding.routingKey, this);
+        channel.exchangeBind(binding.destination, binding.source, binding.routingKey,
+            binding.arguments);
+      } catch (Exception e) {
+        log.error("Failed to recover exchange binding from {} to {} with {} via {}",
+            binding.source, binding.destination, binding.routingKey, this, e);
+      }
+  }
+
+  /** Recovers queues and bindings using the {@code channel}. Server-named queues are re- */
+  private void recoverQueues(Channel channel) {
+    Map<String, QueueDeclaration> newDeclarations = new HashMap<String, QueueDeclaration>();
+    for (Iterator<Map.Entry<String, QueueDeclaration>> it = queueDeclarations.entrySet().iterator(); it.hasNext();) {
+      Map.Entry<String, QueueDeclaration> entry = it.next();
+      String queueName = entry.getKey();
+      QueueDeclaration queueDeclaration = entry.getValue();
+
+      try {
+        String newQueueName = ((Queue.DeclareOk) queueDeclaration.invoke(channel)).getQueue();
+        if (queueName.equals(newQueueName))
+          log.info("Recovered queue {} via {}", queueName, this);
+        else {
+          // Update dependencies for new queue names
+          log.info("Recovered queue {} as {} via {}", queueName, newQueueName, this);
+          queueDeclaration.name = newQueueName;
+          it.remove();
+          newDeclarations.put(newQueueName, queueDeclaration);
+          updateQueueBindingReferences(queueName, newQueueName);
+        }
+      } catch (Exception e) {
+        log.error("Failed to recover queue {} via {}", queueName, this, e);
+      }
+    }
+
+    queueDeclarations.putAll(newDeclarations);
+
+    for (Binding binding : queueBindings.values())
+      try {
+        log.info("Recovering queue binding from {} to {} with {} via {}", binding.source,
+            binding.destination, binding.routingKey, this);
+        channel.queueBind(binding.destination, binding.source, binding.routingKey,
+            binding.arguments);
+      } catch (Exception e) {
+        log.error("Failed to recover queue binding from {} to {} with {} via {}", binding.source,
+            binding.destination, binding.routingKey, this, e);
+      }
+  }
+
+  /** Updates the queue name referenced by queue bindings. */
+  void updateQueueBindingReferences(String oldQueueName, String newQueueName) {
+    List<Binding> bindings = queueBindings.remove(oldQueueName);
+    if (bindings != null) {
+      for (Binding binding : bindings)
+        binding.destination = newQueueName;
+      queueBindings.putAll(newQueueName, bindings);
+    }
   }
 }

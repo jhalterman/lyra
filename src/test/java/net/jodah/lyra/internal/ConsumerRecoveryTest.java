@@ -59,7 +59,7 @@ public class ConsumerRecoveryTest extends AbstractFunctionalTest {
 
     // Deliver messages
     final AtomicBoolean consume = new AtomicBoolean(true);
-    Invocation invocation = mockChannel.channelHandler.consumerInvocations.get("test-tag");
+    ResourceDeclaration invocation = mockChannel.channelHandler.consumerDeclarations.get("test-tag");
     final ConsumerDelegate consumerDelegate = (ConsumerDelegate) invocation.args[invocation.args.length - 1];
     new Thread() {
       public void run() {

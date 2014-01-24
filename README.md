@@ -1,10 +1,10 @@
-# Lyra
+# Lyra [![Build Status](https://travis-ci.org/jhalterman/lyra.png)](https://travis-ci.org/jhalterman/lyra)
 
 *High availability RabbitMQ client*
 
 ## Introduction
 
-Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources such as connections, channels and consumers when various [failure scenarios][failure-scenarios] occur. Lyra also supports automatic invocation retries, and exposes a simple, lightweight API built around the [Java AMQP client](http://www.rabbitmq.com/java-client.html) library.
+Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources when [unexpected failures][failure-scenarios] occur. Lyra also supports automatic invocation retries, and exposes a simple, lightweight API built around the [Java AMQP client](http://www.rabbitmq.com/java-client.html) library.
 
 ## Setup
 
@@ -32,7 +32,9 @@ Also add the latest [amqp-client] dependency:
 
 #### Resource Recovery
 
-The key feature of Lyra is its ability to automatically recover resources such as [Connections][Connection], [Channels][Channel] and [Consumers][Consumer] when [unexpected failures][failure-scenarios] occur. To start, create a `Config` object, specifying a recovery policy:
+The key feature of Lyra is its ability to *automatically* recover resources such as [connections][Connection], [channels][Channel], [consumers][Consumer], exchanges, queues and bindings when [unexpected failures][failure-scenarios] occur. Since recovery may also result in errors, Lyra uses a policy to define how recovery should be performed.
+
+To start, create a `Config` object, specifying a recovery policy:
 
 ```java
 Config config = new Config()
@@ -42,45 +44,43 @@ Config config = new Config()
 		.withMaxDuration(Duration.minutes(5)));
 ```
 
-With our `config`, let's create a *recoverable* Connection along with some Channels and Consumers:
+With our `config`, let's create some *recoverable* resources:
 
 ```java
-ConnectionOptions options = new ConnectionOptions()
-	.withHost("localhost");
+ConnectionOptions options = new ConnectionOptions().withHost("localhost");
 Connection connection = Connections.create(options, config);
 Channel channel1 = connection.createChannel(1);
 Channel channel2 = connection.createChannel(2);
 channel1.basicConsume("foo-queue", consumer1);
-channel1.basicConsume("bar-queue", consumer2);
-channel2.basicConsume("foo-queue", consumer3);
+channel1.basicConsume("foo-queue", consumer2);
+channel2.basicConsume("bar-queue", consumer3);
 channel2.basicConsume("bar-queue", consumer4);
 ```
 
-This results in the resource hierarchy:
+This results in the resource topology:
 
 <img src="https://raw.github.com/jhalterman/lyra/gh-pages/assets/img/rabbit-graph.png"\>
 
-If one of these resources is unexpectedly closed, it will be recovered according to the recovery policy. If the Connection is unexpectedly closed, Lyra will attempt to recover it along with its Channels and Consumers. If a Channel is unexpectedly closed, Lyra will attempt to recover it along with its Consumers.
+If a connection or channel is unexpectedly closed, Lyra will attempt to recover it along with its dependents according to the recovery policy. In addition, any non-durable or auto-deleting exchanges and queues, along with their bindings, will be recovered as needed.
 
 #### Invocation Retries
 
-Lyra also supports invocation retries when a *retryable* failure occurs while creating a Connection or invoking a method against a [Connection] or [Channel]. For example:
+Lyra also supports invocation retries when a *retryable* failure occurs while creating a Connection or invoking a method against a [Connection] or [Channel]. Similar to recovery, retries are also performed according to a policy:
 
 ```java
-ConnectionOptions options = new ConnectionOptions()
-	.withHost("localhost");
 Config config = new Config()
 	.withRecoveryPolicy(RecoveryPolicies.recoverAlways())
 	.withRetryPolicy(new RetryPolicy()
 		.withBackoff(Duration.seconds(1), Duration.seconds(30))
 		.withMaxDuration(Duration.minutes(10)));
-		
+
+ConnectionOptions options = new ConnectionOptions().withHost("localhost");
 Connection connection = Connections.create(options, config);
 Channel channel = connection.createChannel();
 channel.basicConsume("foo-queue", myConsumer);
 ```
 
-Here we've created a new `Connection` and `Channel`, specifying a recovery policy to use in case any of our resources are *unexpectedly* closed as a result of an invocation failure, and a retry policy that dictates how and when the failed method invocation should be retried. If the `Connections.create()`, `connection.createChannel()`, or `channel.basicConsume()` method invocations fail as the result of a *retryable* error, Lyra will attempt to recover any resources that were closed according to the recovery policy and retry the invocation according to the retry policy.
+Here we've created a new `Connection` and `Channel`, specifying a recovery policy to use in case any of our resources are *unexpectedly* closed as a result of an invocation failure, and a retry policy that dictates how and when the failed method invocation should be retried. If any method invocation such as `Connections.create()`, `connection.createChannel()`, or `channel.basicConsume()` fails as the result of a *retryable* error, Lyra will attempt to recover any resources that were closed according to the recovery policy and retry the invocation according to the retry policy.
 
 #### Resource Configuration
 
@@ -137,6 +137,10 @@ Note, since channel recovery happens transparently, in effect when a channel is 
 * JavaDocs are available [here](https://jhalterman.github.com/lyra/javadoc).
 * The various failure scenarios handled by Lyra are described [here][failure-scenarios].
 * See the [Lyra cookbook][cookbook] for handling specific RabbitMQ use cases.
+
+## Thanks
+
+Thanks to Brett Cameron, Michael Klishin and Matthias Radestock for their valuable ideas and feedback.
 
 ## License
 

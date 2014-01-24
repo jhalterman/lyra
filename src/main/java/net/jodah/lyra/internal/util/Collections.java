@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 public class Collections {
+  public static <K, V> ArrayListMultiMap<K, V> arrayListMultiMap() {
+    return new ArrayListMultiMap<K, V>();
+  }
+
   public static <T> List<T> synchronizedList() {
     return java.util.Collections.<T>synchronizedList(new ArrayList<T>());
   }

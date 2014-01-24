@@ -73,14 +73,14 @@ public abstract class AbstractFunctionalTest {
     ChannelHandler channelHandler;
     Map<Integer, Consumer> consumers = new HashMap<Integer, Consumer>();
 
-    protected Consumer mockConsumer(int consumerNumber) throws IOException {
+    protected Consumer mockConsumer(String queueName, int consumerNumber) throws IOException {
       Consumer consumer = consumers.get(consumerNumber);
       if (consumer == null) {
         String consumerTag = String.format("%s-%s", delegate.getChannelNumber(), consumerNumber);
         consumer = new MockConsumer(proxy, consumerNumber);
-        when(delegate.basicConsume(eq("test-queue"), argThat(matcherFor(consumer)))).thenReturn(
+        when(delegate.basicConsume(eq(queueName), argThat(matcherFor(consumer)))).thenReturn(
             consumerTag);
-        proxy.basicConsume("test-queue", consumer);
+        proxy.basicConsume(queueName, consumer);
         consumers.put(consumerNumber, consumer);
       }
 
@@ -97,7 +97,12 @@ public abstract class AbstractFunctionalTest {
   }
 
   protected Consumer mockConsumer(int channelNumber, int consumerNumber) throws IOException {
-    return mockChannel(channelNumber).mockConsumer(consumerNumber);
+    return mockChannel(channelNumber).mockConsumer("test-queue", consumerNumber);
+  }
+
+  protected Consumer mockConsumer(String queueName, int channelNumber, int consumerNumber)
+      throws IOException {
+    return mockChannel(channelNumber).mockConsumer(queueName, consumerNumber);
   }
 
   protected void mockConnection() throws IOException {
@@ -230,7 +235,8 @@ public abstract class AbstractFunctionalTest {
     return new ArgumentMatcher<Consumer>() {
       @Override
       public boolean matches(Object arg) {
-        return ((ConsumerDelegate) arg).delegate.equals(consumer);
+        return arg instanceof MockConsumer ? ((MockConsumer) arg).equals(consumer)
+            : ((ConsumerDelegate) arg).delegate.equals(consumer);
       }
     };
   }

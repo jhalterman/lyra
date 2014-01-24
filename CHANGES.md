@@ -1,8 +1,8 @@
-# 0.3.3
+# 0.4.0
 
 ### New Features
 
-* Added support for exchange, exchange binding, queue, and queue binding recovery. Exchanges, queues and bindings are tracked per connection and recovered when the connection is recovered.
+* Added support for exchange, exchange binding, queue, and queue binding recovery. Exchanges, queues and bindings are tracked per connection.
 
 ### Bug Fixes
 
