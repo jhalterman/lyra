@@ -281,7 +281,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   private void handleExchangeDeclare(Method method, Object[] args) {
     if (config.isExchangeRecoveryEnabled()) {
-      boolean autoDelete = args.length > 2 && (Boolean) args[3];
+      boolean autoDelete = args.length > 3 && (Boolean) args[3];
       boolean durable = args.length > 2 && (Boolean) args[2];
       if (autoDelete || !durable)
         connectionHandler.exchangeDeclarations.put((String) args[0], new ResourceDeclaration(
