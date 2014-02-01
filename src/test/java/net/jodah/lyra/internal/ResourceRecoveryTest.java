@@ -29,7 +29,7 @@ public class ResourceRecoveryTest extends AbstractRecoveryTest {
    * Asserts that resources are recovered when a connection is closed.
    */
   public void shouldRecoverResourcesForConnectionClosures() throws Throwable {
-    performRecovery(connectionHandler, connectionHandler, 3, 1);
+    performRecovery(connectionHandler, connectionHandler, 1, 1);
 
     verifyCxnCreations(4);
     verifyRecoveryChannelCreations(3);

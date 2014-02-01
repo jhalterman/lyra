@@ -22,6 +22,7 @@ import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConnectionListener;
 import net.jodah.lyra.internal.util.ArrayListMultiMap;
 import net.jodah.lyra.internal.util.Collections;
+import net.jodah.lyra.internal.util.Exceptions;
 import net.jodah.lyra.internal.util.Reflection;
 import net.jodah.lyra.internal.util.concurrent.NamedThreadFactory;
 
@@ -88,15 +89,18 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
             public void run() {
               try {
                 recoverConnection();
-              } catch (Throwable t) {
-                log.error("Failed to recover connection {}", ConnectionHandler.this, t);
-                connectionClosed();
-                interruptWaiters();
-                for (ConnectionListener listener : config.getConnectionListeners())
-                  try {
-                    listener.onRecoveryFailure(proxy, t);
-                  } catch (Exception ignore) {
-                  }
+              } catch (Exception e) {
+                // Only fail on non-closures since closures will trigger a new recovery
+                if (!Exceptions.isCausedByConnectionClosure(e)) {
+                  log.error("Failed to recover connection {}", ConnectionHandler.this, e);
+                  connectionClosed();
+                  interruptWaiters();
+                  for (ConnectionListener listener : config.getConnectionListeners())
+                    try {
+                      listener.onRecoveryFailure(proxy, e);
+                    } catch (Exception ignore) {
+                    }
+                }
               }
             }
           });
@@ -208,6 +212,9 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       channelHandler.channelShutdown();
   }
 
+  /**
+   * @throws IOException when recovery fails and recovery policy is exceeded
+   */
   private void createConnection(RecurringPolicy<?> recurringPolicy, final boolean recovery)
       throws IOException {
     try {
@@ -241,7 +248,10 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     }
   }
 
-  private void recoverConnection() throws Throwable {
+  /**
+   * @throws Exception when recovery fails or connection is closed
+   */
+  private void recoverConnection() throws Exception {
     createConnection(config.getConnectionRecoveryPolicy(), true);
 
     // Migrate connection state
@@ -272,7 +282,11 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     circuit.close();
   }
 
-  /** Recover exchanges, queues and bindings via a one-off channel. */
+  /**
+   * Recover exchanges, queues and bindings via a one-off channel.
+   * 
+   * @throws Exception when recovery fails due to a connection closure
+   */
   private void recoverExchangesAndQueues() throws Exception {
     boolean canRecoverExchanges = config.isExchangeRecoveryEnabled()
         && (!exchangeDeclarations.isEmpty() || !exchangeBindings.isEmpty());
@@ -295,12 +309,18 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     }
   }
 
+  /**
+   * @throws Exception when recovery fails due to a connection closure
+   */
   private void recoverExchanges() throws Exception {
     for (Map.Entry<String, ResourceDeclaration> entry : exchangeDeclarations.entrySet())
       recoverExchange(entry.getKey(), entry.getValue());
     recoverExchangeBindings(exchangeBindings.values());
   }
 
+  /**
+   * @throws Exception when recovery fails due to a connection closure
+   */
   private void recoverQueues() throws Exception {
     Map<String, QueueDeclaration> newDeclarations = new HashMap<String, QueueDeclaration>();
     for (Iterator<Map.Entry<String, QueueDeclaration>> it = queueDeclarations.entrySet().iterator(); it.hasNext();) {

@@ -20,7 +20,7 @@ public class ConnectionRecoveryTest extends AbstractRecoveryTest {
    * Asserts that the connection is recovered when closed.
    */
   public void shouldHandleConnectionClosures() throws Throwable {
-    performRecovery(connectionHandler, connectionHandler, 3, 2);
+    performRecovery(connectionHandler, connectionHandler, 1, 2);
     verifyCxnCreations(4);
     verifyChannelCreations(1, 4); // Failed connection
     verifyChannelCreations(2, 2);

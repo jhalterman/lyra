@@ -48,7 +48,7 @@ public class ChannelRecoveryTest extends AbstractRecoveryTest {
    * after their failed recovery attempts.
    */
   public void shouldHandleChannelThenConnectionClosures() throws Throwable {
-    performRecovery(mockChannel(2).channelHandler, connectionHandler, 2, 5);
+    performRecovery(mockChannel(2).channelHandler, connectionHandler, 1, 5);
     verifyCxnCreations(3);
     verifyChannelCreations(1, 3);
     verifyConsumerCreations(1, 1, 3);
