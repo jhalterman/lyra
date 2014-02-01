@@ -28,6 +28,11 @@ public final class Exceptions {
     return null;
   }
 
+  public static boolean isCausedByConnectionClosure(Exception e) {
+    ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
+    return sse != null && Exceptions.isConnectionClosure(sse);
+  }
+
   /**
    * Reliably returns whether the shutdown signal represents a connection closure.
    */

@@ -412,7 +412,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
             recoverRelatedExchanges(recoveredExchanges, queueBindings);
             if (consumerDeclaration.queueDeclaration != null
                 && recoveredQueues.add(consumerDeclaration.queueDeclaration))
-              queueName = recoverQueue(consumerDeclaration.queueDeclaration, queueName,
+              queueName = recoverQueue(queueName, consumerDeclaration.queueDeclaration,
                   queueBindings);
           }
 
@@ -424,9 +424,9 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           consumerDeclaration.invoke(delegate);
           notifyAfterConsumerRecovery(consumer);
         } catch (Exception e) {
-          ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
           log.error("Failed to recover consumer-{} via {}", entry.getKey(), this, e);
           notifyConsumerRecoveryFailure(consumer, e);
+          ShutdownSignalException sse = Exceptions.extractCause(e, ShutdownSignalException.class);
           if (sse != null) {
             if (!Exceptions.isConnectionClosure(sse))
               it.remove();
@@ -437,39 +437,6 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
       notifyConsumerRecovery();
     }
-  }
-
-  /** Recovers the {@code queueName} along with its {@code queueBindings}. */
-  private String recoverQueue(QueueDeclaration queueDeclaration, String queueName,
-      List<Binding> queueBindings) throws Exception {
-    String newQueueName = null;
-
-    if (config.isQueueRecoveryEnabled()) {
-      if (queueDeclaration != null) {
-        newQueueName = ((Queue.DeclareOk) queueDeclaration.invoke(delegate)).getQueue();
-        if (queueName.equals(newQueueName))
-          log.info("Recovered queue {} via {}", queueName, this);
-        else {
-          // Update dependencies for new queue names
-          log.info("Recovered queue {} as {} via {}", queueName, newQueueName, this);
-          queueDeclaration.name = newQueueName;
-          connectionHandler.queueDeclarations.remove(queueName);
-          connectionHandler.queueDeclarations.put(newQueueName, queueDeclaration);
-          connectionHandler.updateQueueBindingReferences(queueName, newQueueName);
-        }
-      }
-
-      if (queueBindings != null)
-        synchronized (queueBindings) {
-          for (Binding qb : queueBindings) {
-            log.info("Recovering queue binding from {} to {} with {} via {}", qb.source,
-                qb.destination, qb.routingKey, this);
-            delegate.queueBind(qb.destination, qb.source, qb.routingKey, qb.arguments);
-          }
-        }
-    }
-
-    return newQueueName == null ? queueName : newQueueName;
   }
 
   /**
@@ -484,23 +451,35 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           String exchangeName = queueBinding.source;
           if (recoveredExchanges.add(exchangeName)) {
             ResourceDeclaration exchangeDeclaration = connectionHandler.exchangeDeclarations.get(exchangeName);
-            if (exchangeDeclaration != null) {
-              log.info("Recovering exchange {} via {}", exchangeName, this);
-              exchangeDeclaration.invoke(delegate);
-            }
-
-            List<Binding> exchangeBindings = connectionHandler.exchangeBindings.get(exchangeName);
-            if (exchangeBindings != null)
-              synchronized (exchangeBindings) {
-                for (Binding eb : exchangeBindings) {
-                  log.info("Recovering exchange binding from {} to {} with {} via {}", eb.source,
-                      eb.destination, eb.routingKey, this);
-                  delegate.exchangeBind(eb.destination, eb.source, eb.routingKey, eb.arguments);
-                }
-              }
+            if (exchangeDeclaration != null)
+              recoverExchange(exchangeName, exchangeDeclaration);
+            recoverExchangeBindings(connectionHandler.exchangeBindings.get(exchangeName));
           }
         }
       }
+  }
+
+  /** Recovers the {@code queueName} along with its {@code queueBindings}. */
+  private String recoverQueue(String queueName, QueueDeclaration queueDeclaration,
+      List<Binding> queueBindings) throws Exception {
+    String newQueueName = queueName;
+
+    if (config.isQueueRecoveryEnabled()) {
+      if (queueDeclaration != null) {
+        newQueueName = recoverQueue(queueName, queueDeclaration);
+
+        // Update dependencies for new queue names
+        if (!queueName.equals(newQueueName)) {
+          connectionHandler.queueDeclarations.remove(queueName);
+          connectionHandler.queueDeclarations.put(newQueueName, queueDeclaration);
+          connectionHandler.updateQueueBindingReferences(queueName, newQueueName);
+        }
+      }
+
+      recoverQueueBindings(queueBindings);
+    }
+
+    return newQueueName;
   }
 
   private void recoveryComplete() {
@@ -525,5 +504,15 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       recoveryComplete();
       circuit.close();
     }
+  }
+
+  @Override
+  Channel getRecoveryChannel() {
+    return delegate;
+  }
+
+  @Override
+  boolean throwOnRecoveryFailure() {
+    return true;
   }
 }

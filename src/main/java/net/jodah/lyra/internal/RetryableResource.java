@@ -3,11 +3,13 @@ package net.jodah.lyra.internal;
 import static net.jodah.lyra.internal.util.Exceptions.extractCause;
 import static net.jodah.lyra.internal.util.Exceptions.isRetryable;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.Callable;
 
 import net.jodah.lyra.internal.util.Collections;
+import net.jodah.lyra.internal.util.Exceptions;
 import net.jodah.lyra.internal.util.Reflection;
 import net.jodah.lyra.internal.util.concurrent.InterruptableWaiter;
 import net.jodah.lyra.internal.util.concurrent.ReentrantCircuit;
@@ -16,6 +18,8 @@ import net.jodah.lyra.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rabbitmq.client.AMQP.Queue;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 
@@ -115,5 +119,82 @@ abstract class RetryableResource {
   void interruptWaiters() {
     circuit.interruptWaiters();
     retryWaiter.interruptWaiters();
+  }
+
+  /** Returns the channel to use for recovery. */
+  abstract Channel getRecoveryChannel() throws IOException;
+
+  /** Whether a failure on recovery should always result in a throw. */
+  abstract boolean throwOnRecoveryFailure();
+
+  /** Recovers an exchange using the {@code channelSupplier}. */
+  void recoverExchange(String exchangeName, ResourceDeclaration exchangeDeclaration)
+      throws Exception {
+    try {
+      log.info("Recovering exchange {} via {}", exchangeName, this);
+      exchangeDeclaration.invoke(getRecoveryChannel());
+    } catch (Exception e) {
+      log.error("Failed to recover exchange {} via {}", exchangeName, this, e);
+      if (throwOnRecoveryFailure() || Exceptions.isCausedByConnectionClosure(e))
+        throw e;
+    }
+  }
+
+  /** Recover exchange bindings using the {@code channelSupplier}. */
+  void recoverExchangeBindings(Iterable<Binding> exchangeBindings) throws Exception {
+    if (exchangeBindings != null)
+      synchronized (exchangeBindings) {
+        for (Binding binding : exchangeBindings)
+          try {
+            log.info("Recovering exchange binding from {} to {} with {} via {}", binding.source,
+                binding.destination, binding.routingKey, this);
+            getRecoveryChannel().exchangeBind(binding.destination, binding.source,
+                binding.routingKey, binding.arguments);
+          } catch (Exception e) {
+            log.error("Failed to recover exchange binding from {} to {} with {} via {}",
+                binding.source, binding.destination, binding.routingKey, this, e);
+            if (throwOnRecoveryFailure() || Exceptions.isCausedByConnectionClosure(e))
+              throw e;
+          }
+      }
+  }
+
+  /** Recovers a queue using the {@code channelSupplier}, returning the recovered queue's name. */
+  String recoverQueue(String queueName, QueueDeclaration queueDeclaration) throws Exception {
+    try {
+      String newQueueName = ((Queue.DeclareOk) queueDeclaration.invoke(getRecoveryChannel())).getQueue();
+      if (queueName.equals(newQueueName))
+        log.info("Recovered queue {} via {}", queueName, this);
+      else {
+        log.info("Recovered queue {} as {} via {}", queueName, newQueueName, this);
+        queueDeclaration.name = newQueueName;
+      }
+
+      return newQueueName;
+    } catch (Exception e) {
+      log.error("Failed to recover queue {} via {}", queueName, this, e);
+      if (throwOnRecoveryFailure() || Exceptions.isCausedByConnectionClosure(e))
+        throw e;
+      return queueName;
+    }
+  }
+
+  /** Recovers queue bindings using the {@code channelSupplier}. */
+  void recoverQueueBindings(Iterable<Binding> queueBindings) throws Exception {
+    if (queueBindings != null)
+      synchronized (queueBindings) {
+        for (Binding binding : queueBindings)
+          try {
+            log.info("Recovering queue binding from {} to {} with {} via {}", binding.source,
+                binding.destination, binding.routingKey, this);
+            getRecoveryChannel().queueBind(binding.destination, binding.source, binding.routingKey,
+                binding.arguments);
+          } catch (Exception e) {
+            log.error("Failed to recover queue binding from {} to {} with {} via {}",
+                binding.source, binding.destination, binding.routingKey, this, e);
+            if (throwOnRecoveryFailure() || Exceptions.isCausedByConnectionClosure(e))
+              throw e;
+          }
+      }
   }
 }

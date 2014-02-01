@@ -49,7 +49,8 @@ public abstract class AbstractFunctionalTest {
   protected Connection connection;
   protected ConnectionHandler connectionHandler;
   protected Connection connectionProxy;
-  protected Map<Integer, MockChannel> channels;
+  private Map<Integer, MockChannel> channels;
+  private Channel recoveryChannel;
 
   protected static class MockConsumer extends DefaultConsumer {
     final Channel channel;
@@ -89,11 +90,14 @@ public abstract class AbstractFunctionalTest {
   }
 
   @BeforeMethod
-  protected void beforeMethod() {
+  protected void beforeMethod() throws Exception {
     options = null;
     config = null;
     connectionFactory = null;
+    connectionHandler = null;
+    connectionProxy = null;
     channels = null;
+    recoveryChannel = null;
   }
 
   protected Consumer mockConsumer(int channelNumber, int consumerNumber) throws IOException {
@@ -122,12 +126,14 @@ public abstract class AbstractFunctionalTest {
           RetryPolicies.retryAlways().withInterval(Duration.millis(10))).withRecoveryPolicy(
           RecoveryPolicies.recoverAlways());
 
-    connectionHandler = new ConnectionHandler(options, config);
-    connectionProxy = (ConfigurableConnection) Proxy.newProxyInstance(
-        Connection.class.getClassLoader(), new Class<?>[] { ConfigurableConnection.class },
-        connectionHandler);
-    connectionHandler.createConnection(connectionProxy);
-    channels = new HashMap<Integer, MockChannel>();
+    if (connectionHandler == null) {
+      connectionHandler = new ConnectionHandler(options, config);
+      connectionProxy = (ConfigurableConnection) Proxy.newProxyInstance(
+          Connection.class.getClassLoader(), new Class<?>[] { ConfigurableConnection.class },
+          connectionHandler);
+      connectionHandler.createConnection(connectionProxy);
+      channels = new HashMap<Integer, MockChannel>();
+    }
   }
 
   protected void mockConnectionOnly() throws IOException {
@@ -136,6 +142,23 @@ public abstract class AbstractFunctionalTest {
     when(connection.getAddress()).thenReturn(inetAddress);
     when(inetAddress.getHostAddress()).thenReturn("test-host");
     when(connection.getPort()).thenReturn(5672);
+  }
+
+  protected Channel mockRecoveryChannel() throws IOException {
+    if (recoveryChannel == null) {
+      recoveryChannel = mock(Channel.class);
+      when(recoveryChannel.getChannelNumber()).thenReturn(ConnectionHandler.RECOVERY_CHANNEL_NUM);
+      when(recoveryChannel.toString()).thenReturn("channel-admin-recovery");
+      when(connection.createChannel(eq(ConnectionHandler.RECOVERY_CHANNEL_NUM))).thenAnswer(
+          new Answer<Channel>() {
+            public Channel answer(InvocationOnMock invocation) throws Throwable {
+              when(recoveryChannel.isOpen()).thenReturn(true);
+              return recoveryChannel;
+            }
+          });
+    }
+
+    return recoveryChannel;
   }
 
   protected MockChannel mockChannel() throws IOException {
@@ -176,6 +199,10 @@ public abstract class AbstractFunctionalTest {
     new Thread(runnable).start();
   }
 
+  protected ShutdownSignalException channelShutdownSignal() {
+    return retryableChannelShutdownSignal();
+  }
+
   protected ShutdownSignalException nonRetryableChannelShutdownSignal() {
     Method m = new AMQP.Channel.Close.Builder().replyCode(404).build();
     Command c = new AMQCommand(m);
@@ -186,6 +213,10 @@ public abstract class AbstractFunctionalTest {
     Method m = new AMQP.Channel.Close.Builder().replyCode(311).build();
     Command c = new AMQCommand(m);
     return new ShutdownSignalException(false, false, c, null);
+  }
+
+  protected ShutdownSignalException connectionShutdownSignal() {
+    return retryableConnectionShutdownSignal();
   }
 
   protected ShutdownSignalException retryableConnectionShutdownSignal() {
@@ -205,9 +236,11 @@ public abstract class AbstractFunctionalTest {
     if (reason instanceof Command) {
       Command command = (Command) reason;
       Method method = command.getMethod();
-      if (method instanceof AMQP.Connection.Close)
+      if (method instanceof AMQP.Connection.Close) {
+        if (recoveryChannel != null)
+          when(recoveryChannel.isOpen()).thenReturn(false);
         connectionHandler.shutdownListeners.get(0).shutdownCompleted(e);
-      else if (method instanceof AMQP.Channel.Close)
+      } else if (method instanceof AMQP.Channel.Close)
         resource.shutdownListeners.get(0).shutdownCompleted(e);
     }
   }
@@ -215,6 +248,11 @@ public abstract class AbstractFunctionalTest {
   void verifyCxnCreations(int expectedCreations) throws IOException {
     verify(connectionFactory, times(expectedCreations)).newConnection(any(ExecutorService.class),
         any(Address[].class));
+  }
+
+  void verifyRecoveryChannelCreations(int expectedCreations) throws IOException {
+    verify(connection, times(expectedCreations)).createChannel(
+        eq(ConnectionHandler.RECOVERY_CHANNEL_NUM));
   }
 
   void verifyChannelCreations(int channelNumber, int expectedCreations) throws IOException {
