@@ -1,4 +1,4 @@
-# Lyra [![Build Status](https://travis-ci.org/jhalterman/lyra.png)](https://travis-ci.org/jhalterman/lyra)
+# Lyra
 
 *High availability RabbitMQ client*
 
