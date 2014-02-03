@@ -14,7 +14,7 @@ Add the Lyra dependency:
 <dependency>
   <groupId>net.jodah</groupId>
   <artifactId>lyra</artifactId>
-  <version>0.3.2</version>
+  <version>0.4.0</version>
 </dependency>
 ```
 
@@ -24,7 +24,7 @@ Also add the latest [amqp-client] dependency:
 <dependency>
   <groupId>com.rabbitmq</groupId>
   <artifactId>amqp-client</artifactId>
-  <version>3.2.1</version>
+  <version>3.2.3</version>
 </dependency>
 ```
 
