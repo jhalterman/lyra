@@ -9,7 +9,6 @@ import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
-import net.jodah.lyra.internal.util.Addresses;
 import net.jodah.lyra.internal.util.Assert;
 import net.jodah.lyra.util.Duration;
 
@@ -23,7 +22,7 @@ import com.rabbitmq.client.ConnectionFactory;
  */
 public class ConnectionOptions {
   private ConnectionFactory factory;
-  private String host = "localhost";
+  private String[] hosts;
   private Address[] addresses;
   private String name;
   private ExecutorService executor;
@@ -39,7 +38,6 @@ public class ConnectionOptions {
    */
   public ConnectionOptions(ConnectionFactory connectionFactory) {
     this.factory = Assert.notNull(connectionFactory, "connectionFactory");
-    withHost(factory.getHost());
   }
 
   private ConnectionOptions(ConnectionOptions options) {
@@ -56,7 +54,7 @@ public class ConnectionOptions {
     factory.setRequestedHeartbeat(options.factory.getRequestedHeartbeat());
     factory.setSaslConfig(options.factory.getSaslConfig());
     factory.setSocketFactory(options.factory.getSocketFactory());
-    host = options.host;
+    hosts = options.hosts;
     addresses = options.addresses;
     name = options.name;
     executor = options.executor;
@@ -78,7 +76,19 @@ public class ConnectionOptions {
    * @see #withHosts(String...)
    */
   public Address[] getAddresses() {
-    return addresses == null ? new Address[] { new Address(host, factory.getPort()) } : addresses;
+    if (addresses != null)
+      return addresses;
+
+    if (hosts != null) {
+      addresses = new Address[hosts.length];
+      for (int i = 0; i < hosts.length; i++)
+        addresses[i] = new Address(hosts[i], factory.getPort());
+      return addresses;
+    }
+
+    Address address = factory == null ? new Address("localhost", -1) : new Address(
+        factory.getHost(), factory.getPort());
+    return new Address[] { address };
   }
 
   /**
@@ -169,7 +179,7 @@ public class ConnectionOptions {
    * @throws NullPointerException if {@code host} is null
    */
   public ConnectionOptions withHost(String host) {
-    this.host = Assert.notNull(host, "host");
+    this.hosts = new String[] { Assert.notNull(host, "host") };
     return this;
   }
 
@@ -179,7 +189,7 @@ public class ConnectionOptions {
    * @throws NullPointerException if {@code hosts} is null
    */
   public ConnectionOptions withHosts(String... hosts) {
-    this.addresses = Addresses.addressesFor(Assert.notNull(hosts, "hosts"), 5672);
+    this.hosts = Assert.notNull(hosts, "hosts");
     return this;
   }
 
