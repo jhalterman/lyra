@@ -40,7 +40,7 @@ public class ChannelRecoveryTest extends AbstractRecoveryTest {
 
     verifyChannelCreations(2, 3);
     verifyConsumerCreations(2, 5, 2); // Failed consumer
-    verifyConsumerCreations(2, 6, 3);
+    verifyConsumerCreations(2, 6, 2);
   }
 
   /**
@@ -56,7 +56,7 @@ public class ChannelRecoveryTest extends AbstractRecoveryTest {
 
     verifyChannelCreations(2, 4);
     verifyConsumerCreations(2, 5, 4); // Failed consumer
-    verifyConsumerCreations(2, 6, 4);
+    verifyConsumerCreations(2, 6, 2);
   }
 
   /**
@@ -88,7 +88,7 @@ public class ChannelRecoveryTest extends AbstractRecoveryTest {
 
     verifyChannelCreations(2, 3);
     verifyConsumerCreations(2, 5, 2); // Only attempted once since first attempt fails
-    verifyConsumerCreations(2, 6, 3);
+    verifyConsumerCreations(2, 6, 2);
   }
 
   @Override

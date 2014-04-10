@@ -2,9 +2,9 @@ package net.jodah.lyra.internal;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +51,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   private ShutdownSignalException lastShutdownSignal;
 
   // Delegate state
-  final Map<String, ConsumerDeclaration> consumerDeclarations = Collections.synchronizedMap();
+  final Map<String, ConsumerDeclaration> consumerDeclarations = Collections.synchronizedLinkedMap();
   private final List<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();
   private final List<FlowListener> flowListeners = new CopyOnWriteArrayList<FlowListener>();
   private final List<ReturnListener> returnListeners = new CopyOnWriteArrayList<ReturnListener>();
@@ -203,7 +203,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
     if (recoveryStats == null) {
       recoveryConsumers = consumerDeclarations.isEmpty() ? null
-          : new HashMap<String, ConsumerDeclaration>(consumerDeclarations);
+          : new LinkedHashMap<String, ConsumerDeclaration>(consumerDeclarations);
       recoveryStats = new RecurringStats(config.getChannelRecoveryPolicy());
       recoveryStats.incrementTime();
     } else if (recoveryStats.isPolicyExceeded()) {

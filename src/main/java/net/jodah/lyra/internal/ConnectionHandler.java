@@ -44,9 +44,9 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       "lyra-recovery-%s"));
   static final int RECOVERY_CHANNEL_NUM = 100;
 
-  final Map<String, ResourceDeclaration> exchangeDeclarations = Collections.synchronizedMap();
+  final Map<String, ResourceDeclaration> exchangeDeclarations = Collections.synchronizedLinkedMap();
   final ArrayListMultiMap<String, Binding> exchangeBindings = Collections.arrayListMultiMap();
-  final Map<String, QueueDeclaration> queueDeclarations = Collections.synchronizedMap();
+  final Map<String, QueueDeclaration> queueDeclarations = Collections.synchronizedLinkedMap();
   final ArrayListMultiMap<String, Binding> queueBindings = Collections.arrayListMultiMap();
   private final ConnectionOptions options;
   private final Config config;
