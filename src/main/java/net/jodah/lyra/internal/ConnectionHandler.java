@@ -232,9 +232,9 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
           ConnectionFactory cxnFactory = options.getConnectionFactory();
           Connection connection = cxnFactory.newConnection(consumerThreadPool,
               options.getAddresses());
-          final String amqpAddress = String.format("amqp://%s:%s/%s", connection.getAddress()
-              .getHostAddress(), connection.getPort(), "/".equals(cxnFactory.getVirtualHost()) ? ""
-              : cxnFactory.getVirtualHost());
+          final String amqpAddress = String.format("%s://%s:%s/%s", cxnFactory.isSSL() ? "amqps"
+              : "amqp", connection.getAddress().getHostAddress(), connection.getPort(),
+              "/".equals(cxnFactory.getVirtualHost()) ? "" : cxnFactory.getVirtualHost());
           log.info("{} connection {} to {}", recovery ? "Recovered" : "Created", connectionName,
               amqpAddress);
           return connection;
