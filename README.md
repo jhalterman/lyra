@@ -8,7 +8,7 @@ Dealing with failure is a fact of life in distributed systems. Lyra is a [Rabbit
 
 ## Motivation
 
-Lyra was created with the simple goal of recovering client created AMQP resources from **any** RabbitMQ failure that could reasonably occur. While nothing like this existed when Lyra was created, the [Java AMQP client][java-client] now supports [automatic recovery](http://www.rabbitmq.com/api-guide.html#recovery) as well. But while the AMQP client can recover from connection failures, Lyra provides the ability to recovery from [any type of failure][failure-scenarios], including from Channel and Consumer closures, while providing flexible recovery policies, configuration, and eventing, to help you get your resources back up and your service back online.
+Lyra was created with the simple goal of recovering client created AMQP resources from **any** RabbitMQ failure that could reasonably occur. While nothing like this existed when Lyra was created, the [Java AMQP client][java-client] now supports [automatic recovery](http://www.rabbitmq.com/api-guide.html#recovery) as well. But while the AMQP client can recover from connection failures, Lyra provides the ability to recovery from [any type of failure][failure-scenarios], including Channel and Consumer closures, while providing flexible [recovery policies][recovery-policy], [configuration][config], and [eventing] to help you get you services back online.
 
 ## Setup
 
@@ -126,15 +126,19 @@ Lyra allows for recovery and retry policies to be set globally, for individual r
 
 Lyra will only retry failed invocations that are deemed *retryable*. These include connection errors that are not related to failed authentication, and channel or connection errors that might be the result of temporary network failures.
 
-#### On Threading
+#### On Publishing
 
-When a Connection or Channel are closed unexpectedly recovery occurs in a background thread. If the resource was closed as the result of an invocation and a retry policy is configured, the calling thread will block until the Connection/Channel is recovered and the retry can be performed.
+When a channel is closed and is in the process of being recovered, attempts to publish to that channel will result in `AlreadyClosedException` being thrown. Publishers should either wait and listen for recovery by way of a [ChannelListener][channel-listener], or use a [RetryPolicy][retry-policy] to retry publish attempts once the channel is recovered.
 
 #### On Message Delivery
 
 When a channel is closed and recovered, any messages that were delivered but not acknowledged will be redelivered on the newly recovered channel. Attempts to ack/nack/reject messages that were delivered before the channel was recovered are simply ignored since their delivery tags will be invalid for the newly recovered channel. 
 
 Note, since channel recovery happens transparently, in effect when a channel is recovered and message redelivery occurs **messages may be seen more than once on the recovered channel**.
+
+#### On Threading
+
+When a Connection or Channel are closed unexpectedly recovery occurs in a background thread. If a retry policy is configured then any invocation attempts will block the calling thread until the Connection/Channel is recovered and the invocation can be retried.
 
 ## Additional Resources
 
@@ -159,10 +163,13 @@ Copyright 2013-2014 Jonathan Halterman - Released under the [Apache 2.0 license]
 [connect-retry]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withConnectRetryPolicy(net.jodah.lyra.retry.RetryPolicy)
 [global-recovery]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withRecoveryPolicy(net.jodah.lyra.retry.RetryPolicy)
 [global-retry]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withRetryPolicy(net.jodah.lyra.retry.RetryPolicy)
+[config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html
+[channel-listener]: http://jodah.net/lyra/javadoc/net/jodah/lyra/event/ChannelListener.html
 [connection-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ConnectionConfig.html
 [channel-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ChannelConfig.html
 [consumer-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ConsumerConfig.html
 [recovery-policy]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/RecoveryPolicy.html
 [retry-policy]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/RetryPolicy.html
+[eventing]: http://jodah.net/lyra/javadoc/net/jodah/lyra/event/package-summary.html
 [cookbook]: https://github.com/jhalterman/lyra/wiki/Lyra-Cookbook
 [failure-scenarios]: https://github.com/jhalterman/lyra/wiki/Failure-Scenarios
