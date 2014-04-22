@@ -4,7 +4,11 @@
 
 ## Introduction
 
-Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources when [unexpected failures][failure-scenarios] occur. Lyra also supports automatic invocation retries, and exposes a simple, lightweight API built around the [Java AMQP client](http://www.rabbitmq.com/java-client.html) library.
+Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources when [unexpected failures][failure-scenarios] occur. Lyra also supports automatic invocation retries, recovery related eventing, and exposes a simple, lightweight API built around the [Java AMQP client](java-client) library.
+
+## Motivation
+
+Lyra was created with the simple goal of recovering client created AMQP resources from **any** RabbitMQ failure that could reasonably occur. While nothing like this existed when Lyra was created, the [Java AMQP client][java-client] now supports [automatic recovery](http://www.rabbitmq.com/api-guide.html#recovery) as well. But while the AMQP client can recover from connection failures, Lyra provides the ability to recovery from [any type of failure][failure-scenarios], including from Channel and Consumer closures, while providing flexible recovery policies, configuration, and eventing, to help you get your resources back up and your service back online.
 
 ## Setup
 
@@ -24,15 +28,15 @@ Also add the latest [amqp-client] dependency:
 <dependency>
   <groupId>com.rabbitmq</groupId>
   <artifactId>amqp-client</artifactId>
-  <version>3.2.3</version>
+  <version>3.3.0</version>
 </dependency>
 ```
 
 ## Usage
 
-#### Resource Recovery
+#### Automatic Resource Recovery
 
-The key feature of Lyra is its ability to *automatically* recover resources such as [connections][Connection], [channels][Channel], [consumers][Consumer], exchanges, queues and bindings when [unexpected failures][failure-scenarios] occur. Since recovery may also result in errors, Lyra uses a policy to define how recovery should be performed.
+The key feature of Lyra is its ability to *automatically* recover resources such as [connections][Connection], [channels][Channel], [consumers][Consumer], exchanges, queues and bindings when [unexpected failures][failure-scenarios] occur. Lyra provides a flexible policy to define how recovery should be performed.
 
 To start, create a `Config` object, specifying a recovery policy:
 
@@ -63,7 +67,7 @@ This results in the resource topology:
 
 If a connection or channel is unexpectedly closed, Lyra will attempt to recover it along with its dependents according to the recovery policy. In addition, any non-durable or auto-deleting exchanges and queues, along with their bindings, will be recovered as needed.
 
-#### Invocation Retries
+#### Automatic Invocation Retries
 
 Lyra also supports invocation retries when a *retryable* failure occurs while creating a Connection or invoking a method against a [Connection] or [Channel]. Similar to recovery, retries are also performed according to a policy:
 
@@ -146,6 +150,7 @@ Thanks to Brett Cameron, Michael Klishin and Matthias Radestock for their valuab
 
 Copyright 2013-2014 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
 
+[java-client]: http://www.rabbitmq.com/java-client.html
 [Connection]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Connection.html
 [Channel]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html
 [Consumer]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Consumer.html
