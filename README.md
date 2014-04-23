@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources when [unexpected failures][failure-scenarios] occur. Lyra also supports automatic invocation retries, recovery related eventing, and exposes a simple, lightweight API built around the [Java AMQP client](java-client) library.
+Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources when [unexpected failures][failure-scenarios] occur. Lyra also supports automatic invocation retries, recovery related eventing, and exposes a simple, lightweight API built around the [Java AMQP client][java-client] library.
 
 ## Motivation
 
