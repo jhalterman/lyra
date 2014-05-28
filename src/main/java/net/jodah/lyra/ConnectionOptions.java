@@ -225,7 +225,7 @@ public class ConnectionOptions {
    * @throws NullPointerException if {@code requestedHeartbeat} is null
    */
   public ConnectionOptions withRequestedHeartbeat(Duration requestedHeartbeat) {
-    factory.setRequestedHeartbeat((int) requestedHeartbeat.toMillis());
+    factory.setRequestedHeartbeat((int) requestedHeartbeat.toSeconds());
     return this;
   }
 
