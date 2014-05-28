@@ -1,3 +1,11 @@
+# 0.4.1
+
+### Bug Fixes
+
+* Added orderedering to consumer, exchange and queue re-declarations
+* Fixed issue with port config not always being respected
+* Fixed issue #36 - Requested heartbeat should be in seconds
+
 # 0.4.0
 
 ### New Features
