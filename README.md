@@ -140,6 +140,10 @@ Note, since channel recovery happens transparently, in effect when a channel is 
 
 When a Connection or Channel are closed unexpectedly recovery occurs in a background thread. If a retry policy is configured then any invocation attempts will block the calling thread until the Connection/Channel is recovered and the invocation can be retried.
 
+#### On QueueingConsumer
+
+`QueueingConsumer` is [deprecated][queueing-consumer-javadoc]. Since the current implementation is [not recoverable](https://github.com/rabbitmq/rabbitmq-java-client/blob/master/src/com/rabbitmq/client/QueueingConsumer.java#L198) it should not be used with Lyra. Instead it's recommended to extend `DefaultConsumer` or implement `Consumer` directly. See the [JavaDoc][queueing-consumer-javadoc] for more details.
+
 ## Additional Resources
 
 * JavaDocs are available [here](https://jhalterman.github.com/lyra/javadoc).
@@ -173,3 +177,4 @@ Copyright 2013-2014 Jonathan Halterman - Released under the [Apache 2.0 license]
 [eventing]: http://jodah.net/lyra/javadoc/net/jodah/lyra/event/package-summary.html
 [cookbook]: https://github.com/jhalterman/lyra/wiki/Lyra-Cookbook
 [failure-scenarios]: https://github.com/jhalterman/lyra/wiki/Failure-Scenarios
+[queueing-consumer-javadoc]: http://www.rabbitmq.com/releases/rabbitmq-java-client/v3.3.1/rabbitmq-java-client-javadoc-3.3.1/com/rabbitmq/client/QueueingConsumer.html
