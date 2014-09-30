@@ -28,7 +28,7 @@ Also add the latest [amqp-client] dependency:
 <dependency>
   <groupId>com.rabbitmq</groupId>
   <artifactId>amqp-client</artifactId>
-  <version>3.3.1</version>
+  <version>[latest-version]</version>
 </dependency>
 ```
 
