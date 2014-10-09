@@ -1,8 +1,12 @@
+# 0.4.2
+
+* Updated internals to support recent breaking amqp-client API changes
+
 # 0.4.1
 
 ### Bug Fixes
 
-* Added orderedering to consumer, exchange and queue re-declarations
+* Added ordering to consumer, exchange and queue re-declarations
 * Fixed issue with port config not always being respected
 * Fixed issue #36 - Requested heartbeat should be in seconds
 
