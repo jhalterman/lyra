@@ -26,8 +26,10 @@ public abstract class AbstractRecoveryTest extends AbstractFunctionalTest {
   void performRecovery(RetryableResource initialResource, RetryableResource recoveryResource,
       int expectedConnectionRecoveryAttempts, int expectedChannelRecoveryAttempts) throws Throwable {
     createResources();
+    int expectedResumes = expectedConnectionRecoveryAttempts + expectedChannelRecoveryAttempts;
 
     final Waiter waiter = new Waiter();
+    waiter.expectResumes(expectedResumes);
     config.withConnectionListeners(new DefaultConnectionListener() {
       @Override
       public void onChannelRecovery(Connection connection) {
@@ -60,8 +62,8 @@ public abstract class AbstractRecoveryTest extends AbstractFunctionalTest {
     callShutdownListener(initialResource,
         initialResource instanceof ConnectionHandler ? connectionShutdownSignal()
             : channelShutdownSignal());
-    if (expectedConnectionRecoveryAttempts + expectedChannelRecoveryAttempts > 0)
-      waiter.await(1000, expectedConnectionRecoveryAttempts + expectedChannelRecoveryAttempts);
+    if (expectedResumes > 0)
+      waiter.await(1000);
     Thread.sleep(100);
   }
 

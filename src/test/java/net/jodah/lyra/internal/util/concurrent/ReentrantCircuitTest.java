@@ -82,6 +82,7 @@ public class ReentrantCircuitTest {
     circuit.open();
 
     final Waiter waiter = new Waiter();
+    waiter.expectResumes(3);
     for (int i = 0; i < 3; i++)
       new Thread(new Runnable() {
         @Override
@@ -99,13 +100,14 @@ public class ReentrantCircuitTest {
 
     Thread.sleep(1000);
     circuit.close();
-    waiter.await(500, 3);
+    waiter.await(500);
   }
 
   public void shouldInterruptWaiters() throws Throwable {
     circuit.open();
 
     final Waiter waiter = new Waiter();
+    waiter.expectResumes(3);
     for (int i = 0; i < 3; i++)
       new Thread(new Runnable() {
         @Override
@@ -120,13 +122,14 @@ public class ReentrantCircuitTest {
 
     Thread.sleep(300);
     circuit.interruptWaiters();
-    waiter.await(500, 3);
+    waiter.await(500);
   }
 
   public void shouldNotBlockOpenWhenSyncAcquired() throws Throwable {
     circuit.open();
 
     final Waiter waiter = new Waiter();
+    waiter.expectResume();
     new Thread(new Runnable() {
       @Override
       public void run() {

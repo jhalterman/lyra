@@ -237,6 +237,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
         .basicCancel("foo-tag");
 
     final Waiter waiter = new Waiter();
+    waiter.expectResumes(2);
     for (int i = 0; i < 2; i++)
       runInThread(new Runnable() {
         public void run() {
@@ -249,7 +250,7 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
         }
       });
 
-    waiter.await(2000, 2);
+    waiter.await(2000);
 
     // Even though both threads will fail twice, only one thread will perform recovery
     verifyCxnCreations(1);

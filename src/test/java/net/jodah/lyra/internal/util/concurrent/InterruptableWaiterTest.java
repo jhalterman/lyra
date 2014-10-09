@@ -10,6 +10,7 @@ public class InterruptableWaiterTest {
   public void shouldInteruptForeverWaiters() throws Throwable {
     final InterruptableWaiter iw = new InterruptableWaiter();
     final Waiter waiter = new Waiter();
+    waiter.expectResumes(3);
 
     for (int i = 0; i < 3; i++)
       new Thread(new Runnable() {
@@ -25,13 +26,14 @@ public class InterruptableWaiterTest {
 
     Thread.sleep(100);
     iw.interruptWaiters();
-    waiter.await(500, 3);
+    waiter.await(500);
   }
 
   public void shouldInterruptTimedWaiters() throws Throwable {
     final InterruptableWaiter iw = new InterruptableWaiter();
     final Waiter waiter = new Waiter();
-
+    waiter.expectResumes(3);
+    
     for (int i = 0; i < 3; i++)
       new Thread(new Runnable() {
         @Override
@@ -46,7 +48,7 @@ public class InterruptableWaiterTest {
 
     Thread.sleep(100);
     iw.interruptWaiters();
-    waiter.await(500, 3);
+    waiter.await(500);
   }
 
   public void timedWaiterShouldTimeoutQuietly() throws Throwable {

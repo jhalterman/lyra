@@ -40,6 +40,7 @@ public class ConnectionClosureTest extends AbstractFunctionalTest {
     mockInvocation(e);
     closeConnectionAfterDelay();
 
+    waiter.expectResume();
     runInThread(new Runnable() {
       public void run() {
         try {
