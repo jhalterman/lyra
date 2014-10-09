@@ -55,7 +55,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   private final List<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();
   private final List<FlowListener> flowListeners = new CopyOnWriteArrayList<FlowListener>();
   private final List<ReturnListener> returnListeners = new CopyOnWriteArrayList<ReturnListener>();
-  private boolean flowDisabled;
+  private boolean flowBlocked;
   private ResourceDeclaration basicQos;
   private boolean confirmSelect;
   private boolean txSelect;
@@ -98,7 +98,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
   @Override
   public Object invoke(Object ignored, final Method method, final Object[] args) throws Throwable {
     if (closed && method.getDeclaringClass().isAssignableFrom(Channel.class))
-      throw new AlreadyClosedException("Attempt to use closed channel", proxy);
+      throw new AlreadyClosedException(delegate.getCloseReason());
 
     Callable<Object> callable = new Callable<Object>() {
       @Override
@@ -138,8 +138,8 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           handleQueueDeclare(((Queue.DeclareOk) result).getQueue(), method, args);
         else if ("queueBind".equals(methodName))
           handleQueueBind(method, args);
-        else if ("flow".equals(methodName))
-          flowDisabled = !(Boolean) args[0];
+        else if ("flowBlocked".equals(methodName))
+          flowBlocked = true;
         else if ("basicQos".equals(methodName)) {
           // Store non-global Qos
           if (args.length < 3 || !(Boolean) args[2])
@@ -322,8 +322,8 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
    */
   private void migrateConfiguration(Channel channel) throws Exception {
     channel.setDefaultConsumer(delegate.getDefaultConsumer());
-    if (flowDisabled)
-      channel.flow(false);
+    if (flowBlocked)
+      channel.flowBlocked();
     if (basicQos != null)
       basicQos.invoke(channel);
     if (confirmSelect)

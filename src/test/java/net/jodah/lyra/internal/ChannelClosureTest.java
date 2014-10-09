@@ -4,7 +4,8 @@ import static org.mockito.Mockito.doThrow;
 
 import java.io.IOException;
 
-import org.jodah.concurrentunit.Waiter;
+import net.jodah.concurrentunit.Waiter;
+
 import org.testng.annotations.Test;
 
 import com.rabbitmq.client.ShutdownSignalException;

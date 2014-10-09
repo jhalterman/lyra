@@ -2,10 +2,10 @@ package net.jodah.lyra.internal;
 
 import java.io.IOException;
 
+import net.jodah.concurrentunit.Waiter;
 import net.jodah.lyra.event.DefaultChannelListener;
 import net.jodah.lyra.event.DefaultConnectionListener;
 
-import org.jodah.concurrentunit.Waiter;
 import org.testng.annotations.BeforeMethod;
 
 import com.rabbitmq.client.Channel;

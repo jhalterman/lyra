@@ -1,8 +1,8 @@
 package net.jodah.lyra.internal.util.concurrent;
 
+import net.jodah.concurrentunit.Waiter;
 import net.jodah.lyra.util.Duration;
 
-import org.jodah.concurrentunit.Waiter;
 import org.testng.annotations.Test;
 
 @Test

@@ -5,7 +5,7 @@ import static org.testng.Assert.fail;
 
 import java.io.IOException;
 
-import org.jodah.concurrentunit.Waiter;
+import net.jodah.concurrentunit.Waiter;
 
 import com.rabbitmq.client.ShutdownSignalException;
 

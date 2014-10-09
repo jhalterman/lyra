@@ -6,15 +6,13 @@ import java.net.SocketTimeoutException;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AlreadyClosedException;
-import com.rabbitmq.client.Command;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Method;
 import com.rabbitmq.client.PossibleAuthenticationFailureException;
 import com.rabbitmq.client.ShutdownSignalException;
 
 public final class Exceptions {
-  private Exceptions() {
-  }
+  private Exceptions() {}
 
   @SuppressWarnings("unchecked")
   public static <T extends Throwable> T extractCause(Throwable t, Class<T> type) {
@@ -37,8 +35,8 @@ public final class Exceptions {
    * Reliably returns whether the shutdown signal represents a connection closure.
    */
   public static boolean isConnectionClosure(ShutdownSignalException e) {
-    return e instanceof AlreadyClosedException ? e.getReference() instanceof Connection
-        : e.isHardError();
+    return e instanceof AlreadyClosedException ? e.getReference() instanceof Connection : e
+        .isHardError();
   }
 
   public static boolean isRetryable(Exception e, ShutdownSignalException sse) {
@@ -98,17 +96,11 @@ public final class Exceptions {
   private static boolean isRetryable(ShutdownSignalException e) {
     if (e.isInitiatedByApplication())
       return false;
-
-    Object reason = e.getReason();
-    if (reason instanceof Command) {
-      Command command = (Command) reason;
-      Method method = command.getMethod();
-      if (method instanceof AMQP.Connection.Close)
-        return isRetryable(((AMQP.Connection.Close) method).getReplyCode());
-      if (method instanceof AMQP.Channel.Close)
-        return isRetryable(((AMQP.Channel.Close) method).getReplyCode());
-    }
-
+    Method method = e.getReason();
+    if (method instanceof AMQP.Connection.Close)
+      return isRetryable(((AMQP.Connection.Close) method).getReplyCode());
+    if (method instanceof AMQP.Channel.Close)
+      return isRetryable(((AMQP.Channel.Close) method).getReplyCode());
     return false;
   }
 }

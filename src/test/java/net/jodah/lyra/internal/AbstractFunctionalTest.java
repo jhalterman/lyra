@@ -33,14 +33,12 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Address;
 import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Command;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Method;
 import com.rabbitmq.client.ShutdownSignalException;
-import com.rabbitmq.client.impl.AMQCommand;
 
 public abstract class AbstractFunctionalTest {
   protected Config config;
@@ -114,23 +112,24 @@ public abstract class AbstractFunctionalTest {
       mockConnectionOnly();
       connectionFactory = mock(ConnectionFactory.class);
       when(connectionFactory.getVirtualHost()).thenReturn("/");
-      when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenReturn(
-          connection);
+      when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class)))
+          .thenReturn(connection);
     }
 
     if (options == null)
       options = new ConnectionOptions().withHost("test-host");
     options.withConnectionFactory(connectionFactory);
     if (config == null)
-      config = new Config().withRetryPolicy(
-          RetryPolicies.retryAlways().withInterval(Duration.millis(10))).withRecoveryPolicy(
-          RecoveryPolicies.recoverAlways());
+      config =
+          new Config().withRetryPolicy(
+              RetryPolicies.retryAlways().withInterval(Duration.millis(10))).withRecoveryPolicy(
+              RecoveryPolicies.recoverAlways());
 
     if (connectionHandler == null) {
       connectionHandler = new ConnectionHandler(options, config);
-      connectionProxy = (ConfigurableConnection) Proxy.newProxyInstance(
-          Connection.class.getClassLoader(), new Class<?>[] { ConfigurableConnection.class },
-          connectionHandler);
+      connectionProxy =
+          (ConfigurableConnection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
+              new Class<?>[] {ConfigurableConnection.class}, connectionHandler);
       connectionHandler.createConnection(connectionProxy);
       channels = new HashMap<Integer, MockChannel>();
     }
@@ -205,14 +204,12 @@ public abstract class AbstractFunctionalTest {
 
   protected ShutdownSignalException nonRetryableChannelShutdownSignal() {
     Method m = new AMQP.Channel.Close.Builder().replyCode(404).build();
-    Command c = new AMQCommand(m);
-    return new ShutdownSignalException(false, false, c, null);
+    return new ShutdownSignalException(false, false, m, null);
   }
 
   protected ShutdownSignalException retryableChannelShutdownSignal() {
     Method m = new AMQP.Channel.Close.Builder().replyCode(311).build();
-    Command c = new AMQCommand(m);
-    return new ShutdownSignalException(false, false, c, null);
+    return new ShutdownSignalException(false, false, m, null);
   }
 
   protected ShutdownSignalException connectionShutdownSignal() {
@@ -221,28 +218,22 @@ public abstract class AbstractFunctionalTest {
 
   protected ShutdownSignalException retryableConnectionShutdownSignal() {
     Method m = new AMQP.Connection.Close.Builder().replyCode(320).build();
-    Command c = new AMQCommand(m);
-    return new ShutdownSignalException(true, false, c, null);
+    return new ShutdownSignalException(true, false, m, null);
   }
 
   protected ShutdownSignalException nonRetryableConnectionShutdownSignal() {
     Method m = new AMQP.Connection.Close.Builder().replyCode(530).build();
-    Command c = new AMQCommand(m);
-    return new ShutdownSignalException(true, false, c, null);
+    return new ShutdownSignalException(true, false, m, null);
   }
 
   protected void callShutdownListener(RetryableResource resource, ShutdownSignalException e) {
-    Object reason = e.getReason();
-    if (reason instanceof Command) {
-      Command command = (Command) reason;
-      Method method = command.getMethod();
-      if (method instanceof AMQP.Connection.Close) {
-        if (recoveryChannel != null)
-          when(recoveryChannel.isOpen()).thenReturn(false);
-        connectionHandler.shutdownListeners.get(0).shutdownCompleted(e);
-      } else if (method instanceof AMQP.Channel.Close)
-        resource.shutdownListeners.get(0).shutdownCompleted(e);
-    }
+    Method method = e.getReason();
+    if (method instanceof AMQP.Connection.Close) {
+      if (recoveryChannel != null)
+        when(recoveryChannel.isOpen()).thenReturn(false);
+      connectionHandler.shutdownListeners.get(0).shutdownCompleted(e);
+    } else if (method instanceof AMQP.Channel.Close)
+      resource.shutdownListeners.get(0).shutdownCompleted(e);
   }
 
   void verifyCxnCreations(int expectedCreations) throws IOException {
