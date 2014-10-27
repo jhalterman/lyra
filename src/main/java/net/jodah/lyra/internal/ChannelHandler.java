@@ -52,7 +52,8 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   // Delegate state
   final Map<String, ConsumerDeclaration> consumerDeclarations = Collections.synchronizedLinkedMap();
-  private final List<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();
+  private final List<ConfirmListener> confirmListeners =
+      new CopyOnWriteArrayList<ConfirmListener>();
   private final List<FlowListener> flowListeners = new CopyOnWriteArrayList<FlowListener>();
   private final List<ReturnListener> returnListeners = new CopyOnWriteArrayList<ReturnListener>();
   private boolean flowBlocked;
@@ -165,7 +166,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     };
 
     return handleCommonMethods(delegate, method, args) ? null : callWithRetries(callable,
-        config.getChannelRetryPolicy(), null, canRecover(), true);
+        config.getChannelRetryPolicy(), null, config.getRetryableExceptions(), canRecover(), true);
   }
 
   @Override
@@ -223,7 +224,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           log.info("Recovered {}", ChannelHandler.this);
           return channel;
         }
-      }, config.getChannelRecoveryPolicy(), recoveryStats, true, false);
+      }, config.getChannelRecoveryPolicy(), recoveryStats, config.getRecoverableExceptions(), true, false);
       notifyRecovery();
       recoverConsumers(!viaConnectionRecovery);
       recoverySucceeded();
@@ -396,14 +397,15 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       Set<QueueDeclaration> recoveredQueues = new HashSet<QueueDeclaration>();
       Set<String> recoveredExchanges = new HashSet<String>();
 
-      for (Iterator<Map.Entry<String, ConsumerDeclaration>> it = recoveryConsumers.entrySet()
-          .iterator(); it.hasNext();) {
+      for (Iterator<Map.Entry<String, ConsumerDeclaration>> it =
+          recoveryConsumers.entrySet().iterator(); it.hasNext();) {
         Map.Entry<String, ConsumerDeclaration> entry = it.next();
         ConsumerDeclaration consumerDeclaration = entry.getValue();
         Object[] args = consumerDeclaration.args;
         ConsumerDelegate consumer = (ConsumerDelegate) args[args.length - 1];
-        String queueName = consumerDeclaration.queueDeclaration != null ? consumerDeclaration.queueDeclaration.name
-            : (String) args[0];
+        String queueName =
+            consumerDeclaration.queueDeclaration != null ? consumerDeclaration.queueDeclaration.name
+                : (String) args[0];
 
         try {
           // Recover referenced exchanges, queues and bindings
@@ -412,8 +414,8 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
             recoverRelatedExchanges(recoveredExchanges, queueBindings);
             if (consumerDeclaration.queueDeclaration != null
                 && recoveredQueues.add(consumerDeclaration.queueDeclaration))
-              queueName = recoverQueue(queueName, consumerDeclaration.queueDeclaration,
-                  queueBindings);
+              queueName =
+                  recoverQueue(queueName, consumerDeclaration.queueDeclaration, queueBindings);
           }
 
           // Recover consumer
@@ -450,7 +452,8 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         for (Binding queueBinding : queueBindings) {
           String exchangeName = queueBinding.source;
           if (recoveredExchanges.add(exchangeName)) {
-            ResourceDeclaration exchangeDeclaration = connectionHandler.exchangeDeclarations.get(exchangeName);
+            ResourceDeclaration exchangeDeclaration =
+                connectionHandler.exchangeDeclarations.get(exchangeName);
             if (exchangeDeclaration != null)
               recoverExchange(exchangeName, exchangeDeclaration);
             recoverExchangeBindings(connectionHandler.exchangeBindings.get(exchangeName));

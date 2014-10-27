@@ -1,8 +1,7 @@
 package net.jodah.lyra.internal.util;
 
 import java.io.EOFException;
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
+import java.util.Set;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AlreadyClosedException;
@@ -35,13 +34,16 @@ public final class Exceptions {
    * Reliably returns whether the shutdown signal represents a connection closure.
    */
   public static boolean isConnectionClosure(ShutdownSignalException e) {
-    return e instanceof AlreadyClosedException ? e.getReference() instanceof Connection : e
-        .isHardError();
+    return e instanceof AlreadyClosedException ? e.getReference() instanceof Connection
+        : e.isHardError();
   }
 
-  public static boolean isRetryable(Exception e, ShutdownSignalException sse) {
-    if (e instanceof SocketTimeoutException || e instanceof ConnectException
-        || e instanceof AlreadyClosedException || e.getCause() instanceof EOFException)
+  public static boolean isRetryable(Set<Class<? extends Exception>> retryableExceptions,
+      Exception e, ShutdownSignalException sse) {
+    for (Class<? extends Exception> retryable : retryableExceptions)
+      if (retryable.isAssignableFrom(e.getClass()))
+        return true;
+    if (retryableExceptions.contains(e) || e.getCause() instanceof EOFException)
       return true;
     if (e instanceof PossibleAuthenticationFailureException)
       return false;

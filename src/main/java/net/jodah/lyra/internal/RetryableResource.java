@@ -6,6 +6,7 @@ import static net.jodah.lyra.internal.util.Exceptions.isRetryable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import net.jodah.lyra.internal.util.Collections;
@@ -35,14 +36,14 @@ abstract class RetryableResource {
   final List<ShutdownListener> shutdownListeners = Collections.synchronizedList();
   volatile boolean closed;
 
-  void afterClosure() {
-  }
+  void afterClosure() {}
 
   /**
    * Calls the {@code callable} with retries, throwing a failure if retries are exhausted.
    */
   <T> T callWithRetries(Callable<T> callable, RecurringPolicy<?> recurringPolicy,
-      RecurringStats retryStats, boolean recoverable, boolean logFailures) throws Exception {
+      RecurringStats retryStats, Set<Class<? extends Exception>> retryableExceptions,
+      boolean recoverable, boolean logFailures) throws Exception {
     boolean recovery = retryStats != null;
 
     while (true) {
@@ -60,8 +61,9 @@ abstract class RetryableResource {
         if (!closed) {
           try {
             // Retry on channel recovery failure or retryable exception
-            boolean retryable = recurringPolicy != null && recurringPolicy.allowsAttempts()
-                && isRetryable(e, sse);
+            boolean retryable =
+                recurringPolicy != null && recurringPolicy.allowsAttempts()
+                    && isRetryable(retryableExceptions, e, sse);
             long startTime = System.nanoTime();
 
             if (retryable) {
@@ -80,8 +82,8 @@ abstract class RetryableResource {
                 retryStats = new RecurringStats(recurringPolicy);
               retryStats.incrementAttempts();
               if (!retryStats.isPolicyExceeded()) {
-                long remainingWaitTime = retryStats.getWaitTime().toNanos()
-                    - (System.nanoTime() - startTime);
+                long remainingWaitTime =
+                    retryStats.getWaitTime().toNanos() - (System.nanoTime() - startTime);
                 if (remainingWaitTime > 0)
                   retryWaiter.await(Duration.nanos(remainingWaitTime));
                 continue;
@@ -162,7 +164,8 @@ abstract class RetryableResource {
   /** Recovers a queue using the {@code channelSupplier}, returning the recovered queue's name. */
   String recoverQueue(String queueName, QueueDeclaration queueDeclaration) throws Exception {
     try {
-      String newQueueName = ((Queue.DeclareOk) queueDeclaration.invoke(getRecoveryChannel())).getQueue();
+      String newQueueName =
+          ((Queue.DeclareOk) queueDeclaration.invoke(getRecoveryChannel())).getQueue();
       if (queueName.equals(newQueueName))
         log.info("Recovered queue {} via {}", queueName, this);
       else {

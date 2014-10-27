@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -38,10 +39,10 @@ import com.rabbitmq.client.ShutdownSignalException;
  * @author Jonathan Halterman
  */
 public class ConnectionHandler extends RetryableResource implements InvocationHandler {
-  private static final Class<?>[] CHANNEL_TYPES = { ConfigurableChannel.class };
+  private static final Class<?>[] CHANNEL_TYPES = {ConfigurableChannel.class};
   private static final AtomicInteger CONNECTION_COUNTER = new AtomicInteger();
-  static final ExecutorService RECOVERY_EXECUTORS = Executors.newCachedThreadPool(new NamedThreadFactory(
-      "lyra-recovery-%s"));
+  static final ExecutorService RECOVERY_EXECUTORS =
+      Executors.newCachedThreadPool(new NamedThreadFactory("lyra-recovery-%s"));
   static final int RECOVERY_CHANNEL_NUM = 100;
 
   final Map<String, ResourceDeclaration> exchangeDeclarations = Collections.synchronizedLinkedMap();
@@ -52,7 +53,8 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   private final Config config;
   private final String connectionName;
   private final ExecutorService consumerThreadPool;
-  private final Map<String, ChannelHandler> channels = new ConcurrentHashMap<String, ChannelHandler>();
+  private final Map<String, ChannelHandler> channels =
+      new ConcurrentHashMap<String, ChannelHandler>();
   private Connection proxy;
   private Connection delegate;
   private Channel recoveryChannel;
@@ -68,10 +70,12 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   public ConnectionHandler(ConnectionOptions options, Config config) throws IOException {
     this.options = options;
     this.config = config;
-    this.connectionName = options.getName() == null ? String.format("cxn-%s",
-        CONNECTION_COUNTER.incrementAndGet()) : options.getName();
-    consumerThreadPool = options.getConsumerExecutor() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
-        String.format("rabbitmq-%s-consumer", connectionName))) : options.getConsumerExecutor();
+    this.connectionName =
+        options.getName() == null ? String.format("cxn-%s", CONNECTION_COUNTER.incrementAndGet())
+            : options.getName();
+    consumerThreadPool =
+        options.getConsumerExecutor() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
+            String.format("rabbitmq-%s-consumer", connectionName))) : options.getConsumerExecutor();
   }
 
   /**
@@ -112,7 +116,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   public void createConnection(Connection proxy) throws IOException {
     try {
       this.proxy = proxy;
-      createConnection(config.getConnectRetryPolicy(), false);
+      createConnection(config.getConnectRetryPolicy(), config.getRetryableExceptions(), false);
       ShutdownListener shutdownListener = new ConnectionShutdownListener();
       shutdownListeners.add(shutdownListener);
       delegate.addShutdownListener(shutdownListener);
@@ -139,36 +143,40 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
       return null;
 
     try {
-      return callWithRetries(new Callable<Object>() {
-        @Override
-        public Object call() throws Exception {
-          if ("createChannel".equals(method.getName())) {
-            Channel channel = (Channel) Reflection.invoke(delegate, method, args);
-            ChannelHandler channelHandler = new ChannelHandler(ConnectionHandler.this, channel,
-                new Config(config));
-            Channel channelProxy = (Channel) Proxy.newProxyInstance(
-                Connection.class.getClassLoader(), CHANNEL_TYPES, channelHandler);
-            channelHandler.proxy = channelProxy;
-            channels.put(Integer.valueOf(channel.getChannelNumber()).toString(), channelHandler);
-            log.info("Created {}", channelHandler);
-            for (ChannelListener listener : config.getChannelListeners())
-              try {
-                listener.onCreate(channelProxy);
-              } catch (Exception ignore) {
+      return callWithRetries(
+          new Callable<Object>() {
+            @Override
+            public Object call() throws Exception {
+              if ("createChannel".equals(method.getName())) {
+                Channel channel = (Channel) Reflection.invoke(delegate, method, args);
+                ChannelHandler channelHandler =
+                    new ChannelHandler(ConnectionHandler.this, channel, new Config(config));
+                Channel channelProxy =
+                    (Channel) Proxy.newProxyInstance(Connection.class.getClassLoader(),
+                        CHANNEL_TYPES, channelHandler);
+                channelHandler.proxy = channelProxy;
+                channels.put(Integer.valueOf(channel.getChannelNumber()).toString(), channelHandler);
+                log.info("Created {}", channelHandler);
+                for (ChannelListener listener : config.getChannelListeners())
+                  try {
+                    listener.onCreate(channelProxy);
+                  } catch (Exception ignore) {
+                  }
+                return channelProxy;
               }
-            return channelProxy;
-          }
 
-          return Reflection.invoke(
-              method.getDeclaringClass().isAssignableFrom(ConnectionConfig.class) ? config
-                  : delegate, method, args);
-        }
+              return Reflection.invoke(
+                  method.getDeclaringClass().isAssignableFrom(ConnectionConfig.class) ? config
+                      : delegate, method, args);
+            }
 
-        @Override
-        public String toString() {
-          return Reflection.toString(method);
-        }
-      }, config.getConnectionRetryPolicy(), null, canRecover(), true);
+            @Override
+            public String toString() {
+              return Reflection.toString(method);
+            }
+          }, config.getConnectionRetryPolicy(), null, config.getRetryableExceptions(),
+          canRecover(),
+          true);
     } catch (Throwable t) {
       if ("createChannel".equals(method.getName())) {
         log.error("Failed to create channel on {}", connectionName, t);
@@ -215,7 +223,8 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   /**
    * @throws IOException when recovery fails and recovery policy is exceeded
    */
-  private void createConnection(RecurringPolicy<?> recurringPolicy, final boolean recovery)
+  private void createConnection(RecurringPolicy<?> recurringPolicy,
+      Set<Class<? extends Exception>> recurringExceptions, final boolean recovery)
       throws IOException {
     try {
       RecurringStats recurringStats = null;
@@ -230,16 +239,17 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
           log.info("{} connection {} to {}", recovery ? "Recovering" : "Creating", connectionName,
               options.getAddresses());
           ConnectionFactory cxnFactory = options.getConnectionFactory();
-          Connection connection = cxnFactory.newConnection(consumerThreadPool,
-              options.getAddresses());
-          final String amqpAddress = String.format("%s://%s:%s/%s", cxnFactory.isSSL() ? "amqps"
-              : "amqp", connection.getAddress().getHostAddress(), connection.getPort(),
-              "/".equals(cxnFactory.getVirtualHost()) ? "" : cxnFactory.getVirtualHost());
+          Connection connection =
+              cxnFactory.newConnection(consumerThreadPool, options.getAddresses());
+          final String amqpAddress =
+              String.format("%s://%s:%s/%s", cxnFactory.isSSL() ? "amqps" : "amqp",
+                  connection.getAddress().getHostAddress(), connection.getPort(),
+                  "/".equals(cxnFactory.getVirtualHost()) ? "" : cxnFactory.getVirtualHost());
           log.info("{} connection {} to {}", recovery ? "Recovered" : "Created", connectionName,
               amqpAddress);
           return connection;
         }
-      }, recurringPolicy, recurringStats, true, false);
+      }, recurringPolicy, recurringStats, recurringExceptions, true, false);
     } catch (Throwable t) {
       if (t instanceof IOException)
         throw (IOException) t;
@@ -252,7 +262,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
    * @throws Exception when recovery fails or connection is closed
    */
   private void recoverConnection() throws Exception {
-    createConnection(config.getConnectionRecoveryPolicy(), true);
+    createConnection(config.getConnectionRecoveryPolicy(), config.getRecoverableExceptions(), true);
 
     // Migrate connection state
     synchronized (shutdownListeners) {
@@ -288,10 +298,12 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
    * @throws Exception when recovery fails due to a connection closure
    */
   private void recoverExchangesAndQueues() throws Exception {
-    boolean canRecoverExchanges = config.isExchangeRecoveryEnabled()
-        && (!exchangeDeclarations.isEmpty() || !exchangeBindings.isEmpty());
-    boolean canRecoverQueues = config.isQueueRecoveryEnabled()
-        && (!queueDeclarations.isEmpty() || !queueBindings.isEmpty());
+    boolean canRecoverExchanges =
+        config.isExchangeRecoveryEnabled()
+            && (!exchangeDeclarations.isEmpty() || !exchangeBindings.isEmpty());
+    boolean canRecoverQueues =
+        config.isQueueRecoveryEnabled()
+            && (!queueDeclarations.isEmpty() || !queueBindings.isEmpty());
 
     if (canRecoverExchanges || canRecoverQueues) {
       try {
