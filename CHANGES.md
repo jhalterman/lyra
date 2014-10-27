@@ -1,14 +1,20 @@
+# 0.4.3
+
+### New Features
+
+* Added support for configuring recoverable and retryable exceptions.
+
 # 0.4.2
 
-* Updated internals to support recent breaking amqp-client API changes
+* Updated internals to support recent breaking amqp-client API changes.
 
 # 0.4.1
 
 ### Bug Fixes
 
-* Added ordering to consumer, exchange and queue re-declarations
-* Fixed issue with port config not always being respected
-* Fixed issue #36 - Requested heartbeat should be in seconds
+* Added ordering to consumer, exchange and queue re-declarations.
+* Fixed issue with port config not always being respected.
+* Fixed issue #36 - Requested heartbeat should be in seconds.
 
 # 0.4.0
 

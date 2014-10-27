@@ -1,4 +1,4 @@
-# Lyra [![Build Status](https://travis-ci.org/jhalterman/lyra.png)](https://travis-ci.org/jhalterman/lyra)
+# Lyra
 
 *High availability RabbitMQ client*
 
@@ -18,7 +18,7 @@ Add the Lyra dependency:
 <dependency>
   <groupId>net.jodah</groupId>
   <artifactId>lyra</artifactId>
-  <version>0.4.2</version>
+  <version>0.4.3</version>
 </dependency>
 ```
 
@@ -122,13 +122,13 @@ Event listeners can be useful for setting up additional resources during recover
 
 Lyra allows for recovery and retry policies to be set globally, for individual resource types, and for initial connection attempts.
 
-#### On Retryable Failures
+#### On Recoverable / Retryable Failures
 
-Lyra will only retry failed invocations that are deemed *retryable*. These include connection errors that are not related to failed authentication, and channel or connection errors that might be the result of temporary network failures.
+Lyra will only recover or retry on certain failures. By default these include connection errors that are not related to failed authentication, and channel or connection errors that might be the result of temporary network failures. The sets of [recoverable][recoverable-exceptions] and [retryable][retryable-exceptions] exceptions can be mutated as needed.
 
 #### On Publishing
 
-When a channel is closed and is in the process of being recovered, attempts to publish to that channel will result in `AlreadyClosedException` being thrown. Publishers should either wait and listen for recovery by way of a [ChannelListener][channel-listener], or use a [RetryPolicy][retry-policy] to retry publish attempts once the channel is recovered. The set of recoverable and retryable exceptions [can be][recoverable-exceptions] [configured][retryable-exceptions] as needed.
+When a channel is closed and is in the process of being recovered, attempts to publish to that channel will result in `AlreadyClosedException` being thrown. Publishers should either wait and listen for recovery by way of a [ChannelListener][channel-listener], or use a [RetryPolicy][retry-policy] to retry publish attempts once the channel is recovered. 
 
 #### On Message Delivery
 
