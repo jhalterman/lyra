@@ -128,7 +128,7 @@ Lyra will only retry failed invocations that are deemed *retryable*. These inclu
 
 #### On Publishing
 
-When a channel is closed and is in the process of being recovered, attempts to publish to that channel will result in `AlreadyClosedException` being thrown. Publishers should either wait and listen for recovery by way of a [ChannelListener][channel-listener], or use a [RetryPolicy][retry-policy] to retry publish attempts once the channel is recovered.
+When a channel is closed and is in the process of being recovered, attempts to publish to that channel will result in `AlreadyClosedException` being thrown. Publishers should either wait and listen for recovery by way of a [ChannelListener][channel-listener], or use a [RetryPolicy][retry-policy] to retry publish attempts once the channel is recovered. The set of recoverable and retryable exceptions [can be][recoverable-exceptions] [configured][retryable-exceptions] as needed.
 
 #### On Message Delivery
 
@@ -164,9 +164,9 @@ Copyright 2013-2014 Jonathan Halterman - Released under the [Apache 2.0 license]
 [Consumer]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Consumer.html
 [amqp-client]: http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22amqp-client%22
 [before-consumer-recovery]: http://jodah.net/lyra/javadoc/net/jodah/lyra/event/ConsumerListener.html#onBeforeRecovery(com.rabbitmq.client.Consumer%2C%20com.rabbitmq.client.Channel)
-[connect-retry]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withConnectRetryPolicy(net.jodah.lyra.retry.RetryPolicy)
-[global-recovery]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withRecoveryPolicy(net.jodah.lyra.retry.RetryPolicy)
-[global-retry]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withRetryPolicy(net.jodah.lyra.retry.RetryPolicy)
+[connect-retry]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withConnectRetryPolicy-net.jodah.lyra.config.RetryPolicy-
+[global-recovery]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withRecoveryPolicy-net.jodah.lyra.config.RecoveryPolicy-
+[global-retry]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#withRetryPolicy-net.jodah.lyra.config.RetryPolicy-
 [config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html
 [channel-listener]: http://jodah.net/lyra/javadoc/net/jodah/lyra/event/ChannelListener.html
 [connection-config]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/ConnectionConfig.html
@@ -178,3 +178,5 @@ Copyright 2013-2014 Jonathan Halterman - Released under the [Apache 2.0 license]
 [cookbook]: https://github.com/jhalterman/lyra/wiki/Lyra-Cookbook
 [failure-scenarios]: https://github.com/jhalterman/lyra/wiki/Failure-Scenarios
 [queueing-consumer-javadoc]: http://www.rabbitmq.com/releases/rabbitmq-java-client/v3.3.1/rabbitmq-java-client-javadoc-3.3.1/com/rabbitmq/client/QueueingConsumer.html
+[recoverable-exceptions]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#getRecoverableExceptions--
+[retryable-exceptions]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#getRetryableExceptions--
