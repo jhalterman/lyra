@@ -9,7 +9,8 @@ import com.rabbitmq.client.Channel;
  */
 public interface ChannelListener {
   /**
-   * Called after the {@code channel} and its consumers are recovered from an unexpected closure.
+   * Called after the {@code channel} and its recovery of consumers are completed. Note: The success
+   * of failure of an individual consumer's recovery can be tracked with a {@link ConsumerListener}.
    */
   void onConsumerRecovery(Channel channel);
 
