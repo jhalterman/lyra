@@ -352,6 +352,13 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     queueDeclarations.putAll(newDeclarations);
     recoverQueueBindings(queueBindings.values());
   }
+  
+  @Override
+  void interruptWaiters() {
+    super.interruptWaiters();
+    for (ChannelHandler channel : channels.values())
+      channel.interruptWaiters();
+  }
 
   /** Updates the queue name referenced by queue bindings. */
   void updateQueueBindingReferences(String oldQueueName, String newQueueName) {
