@@ -249,13 +249,13 @@ public class Config implements ConnectionConfig {
   }
 
   @Override
-  public ConsumerConfig withExchangeRecovery(boolean enabled) {
+  public Config withExchangeRecovery(boolean enabled) {
     exchangeRecovery = Boolean.valueOf(enabled);
     return this;
   }
 
   @Override
-  public ConsumerConfig withQueueRecovery(boolean enabled) {
+  public Config withQueueRecovery(boolean enabled) {
     queueRecovery = Boolean.valueOf(enabled);
     return this;
   }
