@@ -10,20 +10,19 @@ import com.rabbitmq.client.Consumer;
  */
 public interface ConsumerListener {
   /**
-   * Called before the {@code consumer} is recovered from an unexpected closure on the
-   * {@code channel}. This is useful for performing any pre-consumer setup that is required such as
-   * declaring exchanges and queues, and creating queue to exchange bindings.
+   * Called when recovery of the {@code consumer} on the {@code channel} is started. This is useful
+   * for performing any pre-consumer setup that is required such as declaring exchanges and queues,
+   * and creating queue to exchange bindings.
    */
-  void onBeforeRecovery(Consumer consumer, Channel channel);
+  void onRecoveryStarted(Consumer consumer, Channel channel);
 
   /**
-   * Called after the {@code consumer} is recovered from an unexpected closure on the
-   * {@code channel}.
+   * Called when recovery of the {@code consumer} on the {@code channel} is successfully completed.
    */
-  void onAfterRecovery(Consumer consumer, Channel channel);
+  void onRecoveryCompleted(Consumer consumer, Channel channel);
 
   /**
-   * Called after the {@code consumer} fails to recover from an unexpected closure on the
+   * Called when the {@code consumer} fails to recover from an unexpected closure on the
    * {@code channel}.
    */
   void onRecoveryFailure(Consumer consumer, Channel channel, Throwable failure);

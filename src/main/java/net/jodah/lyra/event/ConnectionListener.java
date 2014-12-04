@@ -9,28 +9,35 @@ import com.rabbitmq.client.Connection;
  */
 public interface ConnectionListener {
   /**
-   * Called after the {@code connection} and its channels are recovered from an unexpected closure.
-   */
-  void onChannelRecovery(Connection connection);
-
-  /**
-   * Called after the {@code connection} is successfully created.
+   * Called when the {@code connection} is successfully created.
    */
   void onCreate(Connection connection);
 
   /**
-   * Called after connection creation fails.
+   * Called when connection creation fails.
    */
   void onCreateFailure(Throwable failure);
 
   /**
-   * Called after the {@code connection} is recovered from an unexpected closure, but before the
-   * exchanges, queues, bindings, channels and consumers are recovered.
+   * Called when recovery of the {@code connection} is started.
+   */
+  void onRecoveryStarted(Connection connection);
+
+  /**
+   * Called when the {@code connection} is successfully recovered from an unexpected closure, but
+   * before its associated exchanges, queues, bindings, channels and consumers are recovered.
    */
   void onRecovery(Connection connection);
 
   /**
-   * Called after the {@code connection} fails to recover from an unexpected closure.
+   * Called when recovery of the {@code connection} and its associated resources is completed. Note:
+   * The success of failure of an individual channel's recovery can be tracked with a
+   * {@link ChannelListener}.
+   */
+  void onRecoveryCompleted(Connection connection);
+
+  /**
+   * Called when the {@code connection} fails to recover from an unexpected closure.
    */
   void onRecoveryFailure(Connection connection, Throwable failure);
 }

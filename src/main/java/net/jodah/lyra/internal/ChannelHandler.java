@@ -52,8 +52,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   // Delegate state
   final Map<String, ConsumerDeclaration> consumerDeclarations = Collections.synchronizedLinkedMap();
-  private final List<ConfirmListener> confirmListeners =
-      new CopyOnWriteArrayList<ConfirmListener>();
+  private final List<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();
   private final List<FlowListener> flowListeners = new CopyOnWriteArrayList<FlowListener>();
   private final List<ReturnListener> returnListeners = new CopyOnWriteArrayList<ReturnListener>();
   private boolean flowBlocked;
@@ -110,7 +109,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         String methodName = method.getName();
 
         if ("basicAck".equals(methodName) || "basicNack".equals(methodName)
-            || "basicReject".equals(methodName)) {
+          || "basicReject".equals(methodName)) {
           long deliveryTag = (Long) args[0] - previousMaxDeliveryTag;
           if (deliveryTag > 0)
             args[0] = deliveryTag;
@@ -166,7 +165,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     };
 
     return handleCommonMethods(delegate, method, args) ? null : callWithRetries(callable,
-        config.getChannelRetryPolicy(), null, config.getRetryableExceptions(), canRecover(), true);
+      config.getChannelRetryPolicy(), null, config.getRetryableExceptions(), canRecover(), true);
   }
 
   @Override
@@ -181,7 +180,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   boolean canRecover() {
     return connectionHandler.canRecover() && config.getChannelRecoveryPolicy() != null
-        && config.getChannelRecoveryPolicy().allowsAttempts();
+      && config.getChannelRecoveryPolicy().allowsAttempts();
   }
 
   void channelShutdown() {
@@ -204,7 +203,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
     if (recoveryStats == null) {
       recoveryConsumers = consumerDeclarations.isEmpty() ? null
-          : new LinkedHashMap<String, ConsumerDeclaration>(consumerDeclarations);
+        : new LinkedHashMap<String, ConsumerDeclaration>(consumerDeclarations);
       recoveryStats = new RecurringStats(config.getChannelRecoveryPolicy());
       recoveryStats.incrementTime();
     } else if (recoveryStats.isPolicyExceeded()) {
@@ -214,6 +213,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     }
 
     try {
+      notifyRecoveryStarted();
       delegate = callWithRetries(new Callable<Channel>() {
         @Override
         public Channel call() throws Exception {
@@ -224,7 +224,8 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           log.info("Recovered {}", ChannelHandler.this);
           return channel;
         }
-      }, config.getChannelRecoveryPolicy(), recoveryStats, config.getRecoverableExceptions(), true, false);
+      }, config.getChannelRecoveryPolicy(), recoveryStats, config.getRecoverableExceptions(), true,
+        false);
       notifyRecovery();
       recoverConsumers(!viaConnectionRecovery);
       recoverySucceeded();
@@ -269,7 +270,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         queueName = queueDeclaration.name;
       consumerDeclarations.put(consumerTag, new ConsumerDeclaration(queueDeclaration, method, args));
       log.info("".equals(queueName) ? "Created consumer-{}{} via {}"
-          : "Created consumer-{} of {} via {}", consumerTag, queueName, this);
+        : "Created consumer-{} of {} via {}", consumerTag, queueName, this);
       return consumerTag;
     } else
       return (String) Reflection.invoke(delegate, method, args);
@@ -286,14 +287,14 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       boolean durable = args.length > 2 && (Boolean) args[2];
       if (autoDelete || !durable)
         connectionHandler.exchangeDeclarations.put((String) args[0], new ResourceDeclaration(
-            method, args));
+          method, args));
     }
   }
 
   private void handleQueueBind(Method method, Object[] args) {
     if (config.isQueueRecoveryEnabled())
       connectionHandler.queueBindings.put("".equals(args[0]) ? lastGeneratedQueueName
-          : (String) args[0], new Binding(args));
+        : (String) args[0], new Binding(args));
   }
 
   private void handleQueueDeclare(String queueName, Method method, Object[] args) {
@@ -305,7 +306,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       boolean durable = args != null && (Boolean) args[1];
       if (autoDelete || !durable)
         connectionHandler.queueDeclarations.put(queueName, new QueueDeclaration(queueName, method,
-            args));
+          args));
     }
   }
 
@@ -343,34 +344,10 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       channel.addReturnListener(listener);
   }
 
-  private void notifyAfterConsumerRecovery(Consumer consumer) {
-    for (ConsumerListener listener : config.getConsumerListeners())
-      try {
-        listener.onAfterRecovery(consumer, proxy);
-      } catch (Exception ignore) {
-      }
-  }
-
-  private void notifyBeforeConsumerRecovery(Consumer consumer) {
-    for (ConsumerListener listener : config.getConsumerListeners())
-      try {
-        listener.onBeforeRecovery(consumer, proxy);
-      } catch (Exception ignore) {
-      }
-  }
-
-  private void notifyConsumerRecovery() {
+  private void notifyRecoveryStarted() {
     for (ChannelListener listener : config.getChannelListeners())
       try {
-        listener.onConsumerRecovery(proxy);
-      } catch (Exception ignore) {
-      }
-  }
-
-  private void notifyConsumerRecoveryFailure(Consumer consumer, Exception e) {
-    for (ConsumerListener listener : config.getConsumerListeners())
-      try {
-        listener.onRecoveryFailure(consumer, proxy, e);
+        listener.onRecoveryStarted(proxy);
       } catch (Exception ignore) {
       }
   }
@@ -380,6 +357,38 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       try {
         if (!recoveryPending.get())
           listener.onRecovery(proxy);
+      } catch (Exception ignore) {
+      }
+  }
+
+  private void notifyRecoveryCompleted() {
+    for (ChannelListener listener : config.getChannelListeners())
+      try {
+        listener.onRecoveryCompleted(proxy);
+      } catch (Exception ignore) {
+      }
+  }
+
+  private void notifyConsumerRecoveryStarted(Consumer consumer) {
+    for (ConsumerListener listener : config.getConsumerListeners())
+      try {
+        listener.onRecoveryStarted(consumer, proxy);
+      } catch (Exception ignore) {
+      }
+  }
+
+  private void notifyConsumerRecoveryCompleted(Consumer consumer) {
+    for (ConsumerListener listener : config.getConsumerListeners())
+      try {
+        listener.onRecoveryCompleted(consumer, proxy);
+      } catch (Exception ignore) {
+      }
+  }
+
+  private void notifyConsumerRecoveryFailure(Consumer consumer, Exception e) {
+    for (ConsumerListener listener : config.getConsumerListeners())
+      try {
+        listener.onRecoveryFailure(consumer, proxy, e);
       } catch (Exception ignore) {
       }
   }
@@ -397,15 +406,14 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       Set<QueueDeclaration> recoveredQueues = new HashSet<QueueDeclaration>();
       Set<String> recoveredExchanges = new HashSet<String>();
 
-      for (Iterator<Map.Entry<String, ConsumerDeclaration>> it =
-          recoveryConsumers.entrySet().iterator(); it.hasNext();) {
+      for (Iterator<Map.Entry<String, ConsumerDeclaration>> it = recoveryConsumers.entrySet()
+        .iterator(); it.hasNext();) {
         Map.Entry<String, ConsumerDeclaration> entry = it.next();
         ConsumerDeclaration consumerDeclaration = entry.getValue();
         Object[] args = consumerDeclaration.args;
         ConsumerDelegate consumer = (ConsumerDelegate) args[args.length - 1];
-        String queueName =
-            consumerDeclaration.queueDeclaration != null ? consumerDeclaration.queueDeclaration.name
-                : (String) args[0];
+        String queueName = consumerDeclaration.queueDeclaration != null ? consumerDeclaration.queueDeclaration.name
+          : (String) args[0];
 
         try {
           // Recover referenced exchanges, queues and bindings
@@ -413,18 +421,18 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
             List<Binding> queueBindings = connectionHandler.queueBindings.get(queueName);
             recoverRelatedExchanges(recoveredExchanges, queueBindings);
             if (consumerDeclaration.queueDeclaration != null
-                && recoveredQueues.add(consumerDeclaration.queueDeclaration))
-              queueName =
-                  recoverQueue(queueName, consumerDeclaration.queueDeclaration, queueBindings);
+              && recoveredQueues.add(consumerDeclaration.queueDeclaration))
+              queueName = recoverQueue(queueName, consumerDeclaration.queueDeclaration,
+                queueBindings);
           }
 
           // Recover consumer
-          notifyBeforeConsumerRecovery(consumer);
           log.info(queueName == "" ? "Recovering consumer-{}{} via {}"
-              : "Recovering consumer-{} of {} via {}", entry.getKey(), queueName, this);
+            : "Recovering consumer-{} of {} via {}", entry.getKey(), queueName, this);
+          notifyConsumerRecoveryStarted(consumer);
           consumer.open();
           consumerDeclaration.invoke(delegate);
-          notifyAfterConsumerRecovery(consumer);
+          notifyConsumerRecoveryCompleted(consumer);
         } catch (Exception e) {
           log.error("Failed to recover consumer-{} via {}", entry.getKey(), this, e);
           notifyConsumerRecoveryFailure(consumer, e);
@@ -436,8 +444,6 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           }
         }
       }
-
-      notifyConsumerRecovery();
     }
   }
 
@@ -446,14 +452,13 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
    * {@code recoveredExchanges}, adding recovered exchanges to the {@code recoveredExchanges}.
    */
   private void recoverRelatedExchanges(Set<String> recoveredExchanges, List<Binding> queueBindings)
-      throws Exception {
+    throws Exception {
     if (config.isExchangeRecoveryEnabled() && queueBindings != null)
       synchronized (queueBindings) {
         for (Binding queueBinding : queueBindings) {
           String exchangeName = queueBinding.source;
           if (recoveredExchanges.add(exchangeName)) {
-            ResourceDeclaration exchangeDeclaration =
-                connectionHandler.exchangeDeclarations.get(exchangeName);
+            ResourceDeclaration exchangeDeclaration = connectionHandler.exchangeDeclarations.get(exchangeName);
             if (exchangeDeclaration != null)
               recoverExchange(exchangeName, exchangeDeclaration);
             recoverExchangeBindings(connectionHandler.exchangeBindings.get(exchangeName));
@@ -464,7 +469,7 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
 
   /** Recovers the {@code queueName} along with its {@code queueBindings}. */
   private String recoverQueue(String queueName, QueueDeclaration queueDeclaration,
-      List<Binding> queueBindings) throws Exception {
+    List<Binding> queueBindings) throws Exception {
     String newQueueName = queueName;
 
     if (config.isQueueRecoveryEnabled()) {
@@ -491,6 +496,14 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
     lastShutdownSignal = null;
   }
 
+  private void recoverySucceeded() {
+    if (!recoveryPending.get()) {
+      notifyRecoveryCompleted();
+      recoveryComplete();
+      circuit.close();
+    }
+  }
+
   private void recoveryFailed(Exception e) {
     log.error("Failed to recover {}", this, e);
     recoveryComplete();
@@ -500,13 +513,6 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
         listener.onRecoveryFailure(proxy, e);
       } catch (Exception ignore) {
       }
-  }
-
-  private void recoverySucceeded() {
-    if (!recoveryPending.get()) {
-      recoveryComplete();
-      circuit.close();
-    }
   }
 
   @Override

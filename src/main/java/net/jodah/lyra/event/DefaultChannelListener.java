@@ -9,10 +9,6 @@ import com.rabbitmq.client.Channel;
  */
 public abstract class DefaultChannelListener implements ChannelListener {
   @Override
-  public void onConsumerRecovery(Channel channel) {
-  }
-
-  @Override
   public void onCreate(Channel channel) {
   }
 
@@ -25,6 +21,14 @@ public abstract class DefaultChannelListener implements ChannelListener {
   }
 
   @Override
+  public void onRecoveryCompleted(Channel channel) {
+  }
+
+  @Override
   public void onRecoveryFailure(Channel channel, Throwable failure) {
+  }
+
+  @Override
+  public void onRecoveryStarted(Channel channel) {
   }
 }

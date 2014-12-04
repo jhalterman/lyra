@@ -8,16 +8,16 @@ import com.rabbitmq.client.Consumer;
  * 
  * @author Jonathan Halterman
  */
-public class DefaultConsumerListener implements ConsumerListener {
+public abstract class DefaultConsumerListener implements ConsumerListener {
   @Override
-  public void onBeforeRecovery(Consumer consumer, Channel channel) {
-  }
-
-  @Override
-  public void onAfterRecovery(Consumer consumer, Channel channel) {
+  public void onRecoveryCompleted(Consumer consumer, Channel channel) {
   }
 
   @Override
   public void onRecoveryFailure(Consumer consumer, Channel channel, Throwable failure) {
+  }
+
+  @Override
+  public void onRecoveryStarted(Consumer consumer, Channel channel) {
   }
 }

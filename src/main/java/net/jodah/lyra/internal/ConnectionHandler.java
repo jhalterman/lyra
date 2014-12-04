@@ -262,6 +262,12 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
    * @throws Exception when recovery fails or connection is closed
    */
   private void recoverConnection() throws Exception {
+    for (ConnectionListener listener : config.getConnectionListeners())
+      try {
+        listener.onRecoveryStarted(proxy);
+      } catch (Exception ignore) {
+      }
+    
     createConnection(config.getConnectionRecoveryPolicy(), config.getRecoverableExceptions(), true);
 
     // Migrate connection state
@@ -285,7 +291,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
 
     for (ConnectionListener listener : config.getConnectionListeners())
       try {
-        listener.onChannelRecovery(proxy);
+        listener.onRecoveryCompleted(proxy);
       } catch (Exception ignore) {
       }
 

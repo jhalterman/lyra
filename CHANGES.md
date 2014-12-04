@@ -1,3 +1,21 @@
+# 0.5.0
+
+### New Features
+
+* Added `ConnectionListener.onRecoveryStarted` and `ChannelListener.onRecoveryStarted` event handlers.
+
+### API Changes
+
+* Renamed event listener methods to be more consistent:
+  * `ConnectionListener.onChannelRecovery` is now `onRecoveryCompleted`.
+  * `ChannelListener.onConsumerRecovery` is now `onRecoveryCompleted`.
+  * `ConsumerListener.onBeforeRecovery` is now `onRecoveryStarted`.
+  * `ConsumerListener.onAfterRecovery` is now `onRecoveryCompleted`.
+
+### Bug Fixes
+
+* Fixed #40 - Channel operations may block forver when recovery attempts are exceeded.
+
 # 0.4.3
 
 ### New Features

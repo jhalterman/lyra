@@ -32,7 +32,7 @@ public abstract class AbstractRecoveryTest extends AbstractFunctionalTest {
     waiter.expectResumes(expectedResumes);
     config.withConnectionListeners(new DefaultConnectionListener() {
       @Override
-      public void onChannelRecovery(Connection connection) {
+      public void onRecoveryCompleted(Connection connection) {
         waiter.resume();
       }
 
