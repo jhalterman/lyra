@@ -18,7 +18,7 @@ Add the Lyra dependency:
 <dependency>
   <groupId>net.jodah</groupId>
   <artifactId>lyra</artifactId>
-  <version>0.4.3</version>
+  <version>0.5.0</version>
 </dependency>
 ```
 
