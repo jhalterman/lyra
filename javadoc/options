@@ -14,10 +14,10 @@
 -docencoding
 'UTF-8'
 -doctitle
-'Lyra 0.4.4-SNAPSHOT API'
+'Lyra 0.5.1-SNAPSHOT API'
 -linkoffline
 'http://docs.oracle.com/javase/6/docs/api' '/Users/jonathan/dev/lyra/target/javadoc-bundle-options'
 -use
 -version
 -windowtitle
-'Lyra 0.4.4-SNAPSHOT API'
+'Lyra 0.5.1-SNAPSHOT API'
