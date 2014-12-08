@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -9,7 +10,7 @@
 
   <groupId>net.jodah</groupId>
   <artifactId>lyra</artifactId>
-  <version>0.4.4-SNAPSHOT</version>
+  <version>0.5.0</version>
   <packaging>jar</packaging>
   <name>Lyra</name>
   <url>http://github.com/jhalterman/lyra/</url>
@@ -117,6 +118,17 @@
           <protected>true</protected>
           <excludePackageNames>*.internal</excludePackageNames>
         </configuration>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <additionalparam>-Xdoclint:none</additionalparam>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
