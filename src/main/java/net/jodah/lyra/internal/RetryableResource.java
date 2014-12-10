@@ -67,6 +67,9 @@ abstract class RetryableResource {
             long startTime = System.nanoTime();
 
             if (retryable) {
+              if (retryStats == null) 
+                retryStats = new RecurringStats(recurringPolicy);
+                
               // Wait for pending recovery
               if (sse != null) {
                 if (recurringPolicy.getMaxDuration() == null)
@@ -78,8 +81,6 @@ abstract class RetryableResource {
               }
 
               // Continue retries
-              if (retryStats == null)
-                retryStats = new RecurringStats(recurringPolicy);
               retryStats.incrementAttempts();
               if (!retryStats.isPolicyExceeded()) {
                 long remainingWaitTime =
