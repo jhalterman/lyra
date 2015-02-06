@@ -43,9 +43,7 @@ To start, create a `Config` object, specifying a recovery policy:
 ```java
 Config config = new Config()
 	.withRecoveryPolicy(new RecoveryPolicy()
-		.withMaxAttempts(20)
-		.withInterval(Duration.seconds(1))
-		.withMaxDuration(Duration.minutes(5)));
+	    .withBackoff(Duration.seconds(1), Duration.seconds(30))
 ```
 
 With our `config`, let's create some *recoverable* resources:
@@ -75,8 +73,9 @@ Lyra also supports invocation retries when a *retryable* failure occurs while cr
 Config config = new Config()
 	.withRecoveryPolicy(RecoveryPolicies.recoverAlways())
 	.withRetryPolicy(new RetryPolicy()
-		.withBackoff(Duration.seconds(1), Duration.seconds(30))
-		.withMaxDuration(Duration.minutes(10)));
+		.withMaxAttempts(20)
+		.withInterval(Duration.seconds(1))
+		.withMaxDuration(Duration.minutes(5)));
 
 ConnectionOptions options = new ConnectionOptions().withHost("localhost");
 Connection connection = Connections.create(options, config);
