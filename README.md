@@ -8,7 +8,7 @@ Dealing with failure is a fact of life in distributed systems. Lyra is a [Rabbit
 
 ## Motivation
 
-Lyra was created with the simple goal of recovering client created AMQP resources from **any** RabbitMQ failure that could reasonably occur. While nothing like this existed when Lyra was created, the [Java AMQP client][java-client] now supports [automatic recovery](http://www.rabbitmq.com/api-guide.html#recovery) as well. But while the AMQP client can recover from connection failures, Lyra provides the ability to recovery from [any type of failure][failure-scenarios], including Channel and Consumer closures, while providing flexible [recovery policies][recovery-policy], [configuration][config], and [eventing] to help you get you services back online.
+Lyra was created with the simple goal of recovering client created AMQP resources from **any** RabbitMQ failure that could reasonably occur. While the [Java AMQP client][java-client] provides some [automatic recovery](http://www.rabbitmq.com/api-guide.html#recovery), Lyra provides the ability to recover from [any type of failure][failure-scenarios], including Channel and Consumer closures, while providing flexible [recovery policies][recovery-policy], [configuration][config], and [eventing] to help get your services back online.
 
 ## Setup
 
