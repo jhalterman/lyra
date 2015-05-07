@@ -103,7 +103,7 @@ public abstract class RecurringPolicy<T extends RecurringPolicy<T>> {
     Assert.notNull(interval, "interval");
     Assert.notNull(maxInterval, "maxInterval");
     Assert.isTrue(interval.length > 0, "The interval must be greater than 0");
-    Assert.isTrue(interval.length < maxInterval.length,
+    Assert.isTrue(interval.toNanoseconds() < maxInterval.toNanoseconds(),
         "The interval must be less than the maxInterval");
     Assert.isTrue(intervalMultiplier > 1, "The intervalMultiplier must be greater than 1");
     this.interval = interval;
