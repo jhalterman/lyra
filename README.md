@@ -143,6 +143,10 @@ When a Connection or Channel are closed unexpectedly recovery occurs in a backgr
 
 `QueueingConsumer` is [deprecated][queueing-consumer-javadoc]. Since the current implementation is [not recoverable](https://github.com/rabbitmq/rabbitmq-java-client/blob/master/src/com/rabbitmq/client/QueueingConsumer.java#L198) it should not be used with Lyra. Instead it's recommended to extend `DefaultConsumer` or implement `Consumer` directly. See the [JavaDoc][queueing-consumer-javadoc] for more details.
 
+#### On Logging
+
+Logging is provided via the [slf4j](http://www.slf4j.org/) [API](http://www.slf4j.org/apidocs/index.html) using the `net.jodah.lyra` category. To enable Lyra's logging, just include an slf4j logging [implementation](http://www.slf4j.org/manual.html#swapping) on your classpath.
+
 ## Additional Resources
 
 * JavaDocs are available [here](https://jhalterman.github.com/lyra/javadoc).
