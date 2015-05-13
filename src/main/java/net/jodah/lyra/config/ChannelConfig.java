@@ -42,7 +42,8 @@ public interface ChannelConfig extends ConsumerConfig {
   boolean isExchangeRecoveryEnabled();
 
   /**
-   * Returns whether queue and queue binding recovery is enabled. Defaults to true when channel
+   * Returns whether queue and queue binding recovery is enabled. Queue recovery will recover any
+   * queues that are created with autoDelete=true or durable=false. Defaults to true when channel
    * recovery is configured.
    * 
    * @see #withQueueRecovery(boolean)
@@ -70,7 +71,8 @@ public interface ChannelConfig extends ConsumerConfig {
   ConsumerConfig withExchangeRecovery(boolean enabled);
 
   /**
-   * Sets whether queue and queue binding recovery is enabled or not.
+   * Sets whether queue and queue binding recovery is enabled or not. Queue recovery will recover
+   * any queues that are created with autoDelete=true or durable=false.
    */
   ConsumerConfig withQueueRecovery(boolean enabled);
 }
