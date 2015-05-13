@@ -13,6 +13,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.jodah.lyra.ConnectionOptions;
@@ -113,7 +114,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     }
   }
 
-  public void createConnection(Connection proxy) throws IOException {
+  public void createConnection(Connection proxy) throws IOException, TimeoutException {
     try {
       this.proxy = proxy;
       createConnection(config.getConnectRetryPolicy(), config.getRetryableExceptions(), false);
@@ -225,7 +226,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
    */
   private void createConnection(RecurringPolicy<?> recurringPolicy,
       Set<Class<? extends Exception>> recurringExceptions, final boolean recovery)
-      throws IOException {
+      throws IOException, TimeoutException {
     try {
       RecurringStats recurringStats = null;
       if (recovery) {
@@ -253,6 +254,8 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     } catch (Throwable t) {
       if (t instanceof IOException)
         throw (IOException) t;
+      if (t instanceof TimeoutException)
+        throw (TimeoutException)t;
       if (t instanceof RuntimeException)
         throw (RuntimeException) t;
     }

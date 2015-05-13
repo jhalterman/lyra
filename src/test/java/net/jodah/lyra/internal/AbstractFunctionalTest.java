@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.jodah.lyra.ConnectionOptions;
@@ -107,7 +108,7 @@ public abstract class AbstractFunctionalTest {
     return mockChannel(channelNumber).mockConsumer(queueName, consumerNumber);
   }
 
-  protected void mockConnection() throws IOException {
+  protected void mockConnection() throws IOException, TimeoutException {
     if (connectionFactory == null) {
       mockConnectionOnly();
       connectionFactory = mock(ConnectionFactory.class);

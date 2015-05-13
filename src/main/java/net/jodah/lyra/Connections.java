@@ -2,6 +2,7 @@ package net.jodah.lyra;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
+import java.util.concurrent.TimeoutException;
 
 import net.jodah.lyra.config.Config;
 import net.jodah.lyra.config.ConfigurableConnection;
@@ -31,7 +32,7 @@ public final class Connections {
    * @throws NullPointerException if {@code connectionFactory} or {@code config} are null
    * @throws IOException if the connection could not be created
    */
-  public static ConfigurableConnection create(Config config) throws IOException {
+  public static ConfigurableConnection create(Config config) throws IOException, TimeoutException {
     return create(new ConnectionOptions(), config);
   }
 
@@ -45,7 +46,7 @@ public final class Connections {
    * @throws IOException if the connection could not be created
    */
   public static ConfigurableConnection create(ConnectionFactory connectionFactory, Config config)
-      throws IOException {
+      throws IOException, TimeoutException {
     Assert.notNull(connectionFactory, "connectionFactory");
     return create(new ConnectionOptions(connectionFactory), config);
   }
@@ -59,7 +60,7 @@ public final class Connections {
    * @throws IOException if the connection could not be created
    */
   public static ConfigurableConnection create(ConnectionOptions options, Config config)
-      throws IOException {
+      throws IOException, TimeoutException {
     Assert.notNull(options, "options");
     Assert.notNull(config, "config");
     ConnectionHandler handler = new ConnectionHandler(options.copy(), new Config(config));
