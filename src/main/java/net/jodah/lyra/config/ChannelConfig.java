@@ -34,17 +34,22 @@ public interface ChannelConfig extends ConsumerConfig {
   RetryPolicy getChannelRetryPolicy();
 
   /**
-   * Returns whether exchange and exchange binding recovery is enabled. Defaults to true when
-   * channel recovery is configured.
+   * Returns whether exchange and exchange binding recovery is enabled. Any non-durable or
+   * auto-deleting exchanges will be recovered unless they are explicitly deleted via
+   * {@link Channel#exchangeDelete(String)}.
+   * <p>
+   * Defaults to true when channel recovery is configured.
    * 
    * @see #withExchangeRecovery(boolean)
    */
   boolean isExchangeRecoveryEnabled();
 
   /**
-   * Returns whether queue and queue binding recovery is enabled. Queue recovery will recover any
-   * queues that are created with autoDelete=true or durable=false. Defaults to true when channel
-   * recovery is configured.
+   * Returns whether queue and queue binding recovery is enabled. Any non-durable or auto-deleting
+   * queues will be recovered unless they are explicitly deleted via
+   * {@link Channel#queueDelete(String)}.
+   * <p>
+   * Defaults to true when channel recovery is configured.
    * 
    * @see #withQueueRecovery(boolean)
    */
@@ -66,13 +71,16 @@ public interface ChannelConfig extends ConsumerConfig {
   ChannelConfig withChannelRetryPolicy(RetryPolicy retryPolicy);
 
   /**
-   * Sets whether exchange and exchange binding recovery is enabled or not.
+   * Sets whether exchange and exchange binding recovery is enabled or not. Any non-durable or
+   * auto-deleting exchanges will be recovered unless they are explicitly deleted via
+   * {@link Channel#exchangeDelete(String)}.
    */
   ConsumerConfig withExchangeRecovery(boolean enabled);
 
   /**
-   * Sets whether queue and queue binding recovery is enabled or not. Queue recovery will recover
-   * any queues that are created with autoDelete=true or durable=false.
+   * Sets whether queue and queue binding recovery is enabled or not. Any non-durable or
+   * auto-deleting queues will be recovered unless they are explicitly deleted via
+   * {@link Channel#queueDelete(String)}.
    */
   ConsumerConfig withQueueRecovery(boolean enabled);
 }

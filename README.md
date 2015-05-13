@@ -63,7 +63,7 @@ This results in the resource topology:
 
 <img src="https://raw.github.com/jhalterman/lyra/gh-pages/assets/img/rabbit-graph.png"\>
 
-If a connection or channel is unexpectedly closed, Lyra will attempt to recover it along with its dependents according to the recovery policy. In addition, any non-durable or auto-deleting exchanges and queues, along with their bindings, will be recovered as needed.
+If a connection or channel is unexpectedly closed, Lyra will attempt to recover it along with its dependents according to the recovery policy. In addition, any non-durable or auto-deleting exchanges and queues, along with their bindings, will be recovered unless they are [explicitly][exchange-deletion] [deleted][queue-deletion].
 
 #### Automatic Invocation Retries
 
@@ -183,3 +183,5 @@ Copyright 2013-2014 Jonathan Halterman - Released under the [Apache 2.0 license]
 [queueing-consumer-javadoc]: http://www.rabbitmq.com/releases/rabbitmq-java-client/v3.3.1/rabbitmq-java-client-javadoc-3.3.1/com/rabbitmq/client/QueueingConsumer.html
 [recoverable-exceptions]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#getRecoverableExceptions--
 [retryable-exceptions]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#getRetryableExceptions--
+[exchange-deletion]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html#exchangeDelete(java.lang.String)
+[queue-deletion]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html#queueDelete(java.lang.String)
