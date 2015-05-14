@@ -36,7 +36,7 @@ Also add the latest [amqp-client] dependency:
 
 #### Automatic Resource Recovery
 
-The key feature of Lyra is its ability to *automatically* recover resources such as [connections][Connection], [channels][Channel], [consumers][Consumer], exchanges, queues and bindings when [unexpected failures][failure-scenarios] occur. Lyra provides a flexible policy to define how recovery should be performed.
+The key feature of Lyra is its ability to *automatically* recover resources such as [connections][Connection], [channels][Channel], [consumers][Consumer], exchanges, queues and bindings when [unexpected failures][failure-scenarios] occur. Lyra provides a flexible [policy][recovery-policy] to define how recovery should be performed.
 
 To start, create a `Config` object, specifying a recovery policy:
 
@@ -67,7 +67,7 @@ If a connection or channel is unexpectedly closed, Lyra will attempt to recover 
 
 #### Automatic Invocation Retries
 
-Lyra also supports invocation retries when a *retryable* failure occurs while creating a Connection or invoking a method against a [Connection] or [Channel]. Similar to recovery, retries are also performed according to a policy:
+Lyra also supports invocation retries when a *retryable* failure occurs while creating a Connection or invoking a method against a [Connection] or [Channel]. Similar to recovery, retries are also performed according to a [policy][retry-policy]:
 
 ```java
 Config config = new Config()
