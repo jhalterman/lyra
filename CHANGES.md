@@ -1,3 +1,14 @@
+# 0.5.1
+
+### New Features
+
+* Added handling of connection timeouts to coincide with the addition of timeouts in amqp-client.
+
+### Bug Fixes
+
+* Fixed #47 - Allow backoff interval durations to use different units.
+* Fixed null safety of internal retryStats.
+
 # 0.5.0
 
 ### New Features
