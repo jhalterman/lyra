@@ -44,6 +44,7 @@ To start, create a `Config` object, specifying a recovery policy:
 Config config = new Config()
 	.withRecoveryPolicy(new RecoveryPolicy()
 	    .withBackoff(Duration.seconds(1), Duration.seconds(30))
+	    .withMaxAttempts(20));
 ```
 
 With our `config`, let's create some *recoverable* resources:
