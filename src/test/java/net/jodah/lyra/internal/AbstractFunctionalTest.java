@@ -237,7 +237,7 @@ public abstract class AbstractFunctionalTest {
       resource.shutdownListeners.get(0).shutdownCompleted(e);
   }
 
-  void verifyCxnCreations(int expectedCreations) throws IOException {
+  void verifyCxnCreations(int expectedCreations) throws IOException, TimeoutException {
     verify(connectionFactory, times(expectedCreations)).newConnection(any(ExecutorService.class),
         any(Address[].class));
   }

@@ -236,7 +236,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
 
       delegate = callWithRetries(new Callable<Connection>() {
         @Override
-        public Connection call() throws IOException {
+        public Connection call() throws IOException, TimeoutException {
           log.info("{} connection {} to {}", recovery ? "Recovering" : "Creating", connectionName,
               options.getAddresses());
           ConnectionFactory cxnFactory = options.getConnectionFactory();
