@@ -10,7 +10,6 @@ public class InterruptableWaiterTest {
   public void shouldInteruptForeverWaiters() throws Throwable {
     final InterruptableWaiter iw = new InterruptableWaiter();
     final Waiter waiter = new Waiter();
-    waiter.expectResumes(3);
 
     for (int i = 0; i < 3; i++)
       new Thread(new Runnable() {
@@ -32,7 +31,6 @@ public class InterruptableWaiterTest {
   public void shouldInterruptTimedWaiters() throws Throwable {
     final InterruptableWaiter iw = new InterruptableWaiter();
     final Waiter waiter = new Waiter();
-    waiter.expectResumes(3);
     
     for (int i = 0; i < 3; i++)
       new Thread(new Runnable() {

@@ -29,7 +29,6 @@ public abstract class AbstractRecoveryTest extends AbstractFunctionalTest {
     int expectedResumes = expectedConnectionRecoveryAttempts + expectedChannelRecoveryAttempts;
 
     final Waiter waiter = new Waiter();
-    waiter.expectResumes(expectedResumes);
     config.withConnectionListeners(new DefaultConnectionListener() {
       @Override
       public void onRecoveryCompleted(Connection connection) {

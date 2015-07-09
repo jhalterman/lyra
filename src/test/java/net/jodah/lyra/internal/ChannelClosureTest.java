@@ -57,7 +57,6 @@ public class ChannelClosureTest extends AbstractFunctionalTest {
     mockInvocation(e);
     closeChannelAfterDelay();
 
-    waiter.expectResume();
     runInThread(new Runnable() {
       public void run() {
         try {

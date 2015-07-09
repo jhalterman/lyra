@@ -237,7 +237,6 @@ public class ChannelInvocationTest extends AbstractInvocationTest {
         .basicCancel("foo-tag");
 
     final Waiter waiter = new Waiter();
-    waiter.expectResumes(2);
     for (int i = 0; i < 2; i++)
       runInThread(new Runnable() {
         public void run() {

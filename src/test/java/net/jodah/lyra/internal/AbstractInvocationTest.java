@@ -22,7 +22,6 @@ public abstract class AbstractInvocationTest extends AbstractFunctionalTest {
       mockRecovery(recoveryFailure);
 
     final Waiter waiter = new Waiter();
-    waiter.expectResume();
     runInThread(new Runnable() {
       public void run() {
         try {
