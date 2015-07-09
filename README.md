@@ -1,4 +1,6 @@
-# Lyra [![Build Status](https://travis-ci.org/jhalterman/lyra.png)](https://travis-ci.org/jhalterman/lyra)
+# Lyra
+[![Build Status](https://travis-ci.org/jhalterman/lyra.svg)](https://travis-ci.org/jhalterman/lyra)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/lyra/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.jodah/lyra) 
 
 *High availability RabbitMQ client*
 
@@ -12,25 +14,7 @@ Lyra was created with the simple goal of recovering client created AMQP resource
 
 ## Setup
 
-Add the Lyra dependency:
-
-```xml
-<dependency>
-  <groupId>net.jodah</groupId>
-  <artifactId>lyra</artifactId>
-  <version>0.5.2</version>
-</dependency>
-```
-
-Also add the latest [amqp-client] dependency:
-
-```xml
-<dependency>
-  <groupId>com.rabbitmq</groupId>
-  <artifactId>amqp-client</artifactId>
-  <version>[latest-version]</version>
-</dependency>
-```
+Add the latest [Lyra](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22net.jodah%22%20a%3A%22lyra%22) and [amqp-client] dependencies to your project.
 
 ## Usage
 
