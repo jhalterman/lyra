@@ -262,8 +262,6 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
       Consumer consumer = (Consumer) args[args.length - 1];
       args[args.length - 1] = new ConsumerDelegate(this, consumer);
       String consumerTag = (String) Reflection.invoke(delegate, method, args);
-      if (args.length > 3)
-        args[2] = consumerTag;
       String queueName = "".equals(args[0]) ? lastGeneratedQueueName : (String) args[0];
       QueueDeclaration queueDeclaration = connectionHandler.queueDeclarations.get(queueName);
       if (queueDeclaration != null)
