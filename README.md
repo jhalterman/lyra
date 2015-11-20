@@ -108,7 +108,7 @@ Lyra allows for recovery and retry policies to be set globally, for individual r
 
 #### On Recoverable / Retryable Failures
 
-Lyra will only recover or retry on certain failures. By default these include connection errors that are not related to failed authentication, and channel or connection errors that might be the result of temporary network failures. The sets of [recoverable][recoverable-exceptions] and [retryable][retryable-exceptions] exceptions can be mutated as needed.
+Lyra will only recover or retry on certain failures. By default these include connection errors that are not related to failed authentication, and channel or connection errors that might be the result of temporary network failures. It is possible to see different exceptions for the same failure on different platforms. Because of this, you can freely modify the sets of [recoverable][recoverable-exceptions] and [retryable][retryable-exceptions] exceptions can as needed to handle any type of failure.
 
 #### On Publishing
 
