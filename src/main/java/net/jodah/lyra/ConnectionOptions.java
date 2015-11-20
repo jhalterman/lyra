@@ -54,6 +54,7 @@ public class ConnectionOptions {
     factory.setRequestedHeartbeat(options.factory.getRequestedHeartbeat());
     factory.setSaslConfig(options.factory.getSaslConfig());
     factory.setSocketFactory(options.factory.getSocketFactory());
+    factory.setThreadFactory(options.factory.getThreadFactory());
     hosts = options.hosts;
     addresses = options.addresses;
     name = options.name;
