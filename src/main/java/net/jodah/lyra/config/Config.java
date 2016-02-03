@@ -1,6 +1,7 @@
 package net.jodah.lyra.config;
 
 import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,7 +28,8 @@ import com.rabbitmq.client.Connection;
  */
 public class Config implements ConnectionConfig {
   @SuppressWarnings("unchecked") private static final Class<Exception>[] RECURRING_EXCEPTIONS = (Class<Exception>[]) new Class<?>[] {
-      SocketTimeoutException.class, ConnectException.class, AlreadyClosedException.class, TimeoutException.class };
+      SocketTimeoutException.class, ConnectException.class, AlreadyClosedException.class, TimeoutException.class,
+      NoRouteToHostException.class };
 
   private final Config parent;
   private RetryPolicy retryPolicy;
