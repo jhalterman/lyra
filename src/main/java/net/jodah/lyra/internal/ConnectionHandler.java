@@ -22,10 +22,7 @@ import net.jodah.lyra.config.ConfigurableChannel;
 import net.jodah.lyra.config.ConnectionConfig;
 import net.jodah.lyra.event.ChannelListener;
 import net.jodah.lyra.event.ConnectionListener;
-import net.jodah.lyra.internal.util.ArrayListMultiMap;
-import net.jodah.lyra.internal.util.Collections;
-import net.jodah.lyra.internal.util.Exceptions;
-import net.jodah.lyra.internal.util.Reflection;
+import net.jodah.lyra.internal.util.*;
 import net.jodah.lyra.internal.util.concurrent.NamedThreadFactory;
 
 import com.rabbitmq.client.Channel;
@@ -54,6 +51,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   private final Config config;
   private final String connectionName;
   private final ExecutorService consumerThreadPool;
+  private final ClassLoader classLoader;
   private final Map<String, ChannelHandler> channels =
       new ConcurrentHashMap<String, ChannelHandler>();
   private Connection proxy;
@@ -68,9 +66,10 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
     });
   }
 
-  public ConnectionHandler(ConnectionOptions options, Config config) throws IOException {
+  public ConnectionHandler(ConnectionOptions options, Config config, ClassLoader classLoader) throws IOException {
     this.options = options;
     this.config = config;
+    this.classLoader = Assert.notNull(classLoader, "classLoader");
     this.connectionName =
         options.getName() == null ? String.format("cxn-%s", CONNECTION_COUNTER.incrementAndGet())
             : options.getName();
@@ -153,7 +152,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
                 ChannelHandler channelHandler =
                     new ChannelHandler(ConnectionHandler.this, channel, new Config(config));
                 Channel channelProxy =
-                    (Channel) Proxy.newProxyInstance(Connection.class.getClassLoader(),
+                    (Channel) Proxy.newProxyInstance(classLoader,
                         CHANNEL_TYPES, channelHandler);
                 channelHandler.proxy = channelProxy;
                 channels.put(Integer.valueOf(channel.getChannelNumber()).toString(), channelHandler);
