@@ -10,7 +10,7 @@
   <groupId>net.jodah</groupId>
   <artifactId>lyra</artifactId>
   <version>0.5.3-SNAPSHOT</version>
-  <packaging>jar</packaging>
+  <packaging>bundle</packaging>
   <name>Lyra</name>
   <url>http://github.com/jhalterman/lyra/</url>
 
@@ -134,6 +134,24 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <version>3.0.1</version>
+        <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Export-Package>
+              net.jodah.lyra.*;version="${project.version}"
+            </Export-Package>
+            <Import-Package>
+              com.rabbitmq.client.*,
+              org.slf4j.*
+            </Import-Package>
+            <Bundle-SymbolicName>${artifactId}</Bundle-SymbolicName>
+          </instructions>
+        </configuration>
       </plugin>
     </plugins>
   </build>
