@@ -86,6 +86,21 @@ public final class Connections {
    * Creates and returns a new Lyra managed ConfigurableConnection for the given {@code options} and
    * {@code config}. If the connection attempt fails, retries will be performed according to the
    * {@link Config#getConnectRetryPolicy() configured RetryPolicy} before throwing the failure.
+   *
+   * @throws NullPointerException if {@code options} or {@code config} are null
+   * @throws IOException if the connection could not be created
+   */
+  public static ConfigurableConnection create(ConnectionOptions options, Config config)
+      throws IOException, TimeoutException {
+    Assert.notNull(options, "options");
+    Assert.notNull(config, "config");
+    return create(options, config, DEFAULT_CLASS_LOADER);
+  }
+
+  /**
+   * Creates and returns a new Lyra managed ConfigurableConnection for the given {@code options} and
+   * {@code config}. If the connection attempt fails, retries will be performed according to the
+   * {@link Config#getConnectRetryPolicy() configured RetryPolicy} before throwing the failure.
    * 
    * @throws NullPointerException if {@code options} or {@code config} are null
    * @throws IOException if the connection could not be created
