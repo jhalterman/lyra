@@ -1,3 +1,8 @@
+# 0.5.3
+
+* Added OSGi support along with support for explicit `CloassLoader`s.
+  * See `Connections.create(..., Config, Classloader)`
+
 # 0.5.2
 
 ### New Features
