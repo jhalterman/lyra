@@ -122,7 +122,7 @@ public class Config implements ConnectionConfig {
   }
 
   /**
-   * Sets the policy to use for handling {@link Connections#create(ConnectionOptions, Config)
+   * Sets the policy to use for handling {@link Connections#create(ConnectionOptions, Config, ClassLoader)
    * connection attempt} errors. Overrides the {@link #withRetryPolicy(RetryPolicy) global retry
    * policy}.
    * 
@@ -220,7 +220,7 @@ public class Config implements ConnectionConfig {
 
   /**
    * Sets the policy to use for handling initial
-   * {@link Connections#create(ConnectionOptions, Config) connection attempt} errors. Overrides the
+   * {@link Connections#create(ConnectionOptions, Config, ClassLoader) connection attempt} errors. Overrides the
    * {@link #withRetryPolicy(RetryPolicy) global retry policy}.
    */
   public Config withConnectRetryPolicy(RetryPolicy connectRetryPolicy) {
@@ -264,7 +264,7 @@ public class Config implements ConnectionConfig {
   }
 
   /**
-   * Sets the policy to use for handling {@link Connections#create(ConnectionOptions, Config)
+   * Sets the policy to use for handling {@link Connections#create(ConnectionOptions, Config, ClassLoader)
    * connection attempt}, {@link Connection} invocation, and {@link Channel} invocation errors. Can
    * be overridden with specific policies via {@link #withConnectRetryPolicy(RetryPolicy)},
    * {@link #withConnectionRetryPolicy(RetryPolicy)}, and

@@ -127,7 +127,7 @@ public abstract class AbstractFunctionalTest {
               RecoveryPolicies.recoverAlways());
 
     if (connectionHandler == null) {
-      connectionHandler = new ConnectionHandler(options, config);
+      connectionHandler = new ConnectionHandler(options, config, Connection.class.getClassLoader());
       connectionProxy =
           (ConfigurableConnection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
               new Class<?>[] {ConfigurableConnection.class}, connectionHandler);
