@@ -42,6 +42,7 @@ public class ConnectionOptions {
 
   private ConnectionOptions(ConnectionOptions options) {
     factory = new ConnectionFactory();
+    factory.setAutomaticRecoveryEnabled(options.factory.isAutomaticRecoveryEnabled());
     factory.setClientProperties(options.factory.getClientProperties());
     factory.setConnectionTimeout(options.factory.getConnectionTimeout());
     factory.setHost(options.factory.getHost());
