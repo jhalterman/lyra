@@ -137,6 +137,7 @@ Logging is provided via the [slf4j](http://www.slf4j.org/) [API](http://www.slf4
 * JavaDocs are available [here](https://jhalterman.github.com/lyra/javadoc).
 * The various failure scenarios handled by Lyra are described [here][failure-scenarios].
 * See the [Lyra cookbook][cookbook] for handling specific RabbitMQ use cases.
+* A [Clojure][kithara] wrapper for Lyra is available.
 
 ## Thanks
 
@@ -170,3 +171,4 @@ Copyright 2013-2014 Jonathan Halterman - Released under the [Apache 2.0 license]
 [retryable-exceptions]: http://jodah.net/lyra/javadoc/net/jodah/lyra/config/Config.html#getRetryableExceptions--
 [exchange-deletion]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html#exchangeDelete(java.lang.String)
 [queue-deletion]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html#queueDelete(java.lang.String)
+[kithara]: https://github.com/xsc/kithara
