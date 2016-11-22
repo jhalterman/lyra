@@ -4,6 +4,8 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
@@ -300,5 +302,36 @@ public class ConnectionOptions {
   public ConnectionOptions withVirtualHost(String virtualHost) {
     factory.setVirtualHost(Assert.notNull(virtualHost, "virtualHost"));
     return this;
+  }
+
+  /**
+   * Convenience method for setting the fields in an AMQP URI: host,
+   * port, username, password and virtual host.  If any part of the
+   * URI is ommited, the ConnectionFactory's corresponding variable
+   * is left unchanged.
+   * @param uri is the AMQP URI containing the data
+   */
+  public ConnectionOptions withUri(URI uri)
+    throws URISyntaxException, NoSuchAlgorithmException, KeyManagementException
+  {
+     factory.setUri(Assert.notNull(uri, "URI"));
+     return this;
+  }
+
+  /**
+   * Convenience method for setting the fields in an AMQP URI: host,
+   * port, username, password and virtual host.  If any part of the
+   * URI is ommited, the ConnectionFactory's corresponding variable
+   * is left unchanged.  Note that not all valid AMQP URIs are
+   * accepted; in particular, the hostname must be given if the
+   * port, username or password are given, and escapes in the
+   * hostname are not permitted.
+   * @param uriString is the AMQP URI containing the data
+   */
+  public ConnectionOptions withUri(String uriString) 
+    throws URISyntaxException, NoSuchAlgorithmException, KeyManagementException
+  {
+     factory.setUri(Assert.notNull(uriString, "uriString"));
+     return this;
   }
 }
