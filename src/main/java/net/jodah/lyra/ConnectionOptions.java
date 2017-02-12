@@ -30,6 +30,7 @@ public class ConnectionOptions {
   private String name;
   private ExecutorService executor;
   private NioParams nioParams;
+  private Boolean useNio = false;
 
   public ConnectionOptions() {
     factory = new ConnectionFactory();
@@ -60,10 +61,17 @@ public class ConnectionOptions {
     factory.setSaslConfig(options.factory.getSaslConfig());
     factory.setSocketFactory(options.factory.getSocketFactory());
     factory.setThreadFactory(options.factory.getThreadFactory());
+
+    if (useNio)
+      factory.useNio();
+
+    factory.setNioParams(nioParams);
+
     hosts = options.hosts;
     addresses = options.addresses;
     name = options.name;
     executor = options.executor;
+    nioParams = options.nioParams;
   }
 
   /**
@@ -350,6 +358,7 @@ public class ConnectionOptions {
    * Support for Java non-blocking IO
    */
   public ConnectionOptions withNio() {
+    this.useNio = true;
     factory.useNio();
     return this;
   }
