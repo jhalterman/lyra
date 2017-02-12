@@ -46,7 +46,30 @@ public class ConnectionOptions {
   }
 
   private ConnectionOptions(ConnectionOptions options) {
-    factory = options.factory.clone();
+    nioParams = options.nioParams;
+    useNio = options.useNio;
+
+    factory = new ConnectionFactory();
+    factory.setAutomaticRecoveryEnabled(options.factory.isAutomaticRecoveryEnabled());
+    factory.setClientProperties(options.factory.getClientProperties());
+    factory.setConnectionTimeout(options.factory.getConnectionTimeout());
+    factory.setHost(options.factory.getHost());
+    factory.setPort(options.factory.getPort());
+    factory.setUsername(options.factory.getUsername());
+    factory.setPassword(options.factory.getPassword());
+    factory.setVirtualHost(options.factory.getVirtualHost());
+    factory.setRequestedChannelMax(options.factory.getRequestedChannelMax());
+    factory.setRequestedFrameMax(options.factory.getRequestedFrameMax());
+    factory.setRequestedHeartbeat(options.factory.getRequestedHeartbeat());
+    factory.setSaslConfig(options.factory.getSaslConfig());
+    factory.setSocketFactory(options.factory.getSocketFactory());
+    factory.setThreadFactory(options.factory.getThreadFactory());
+    factory.setMetricsCollector(options.factory.getMetricsCollector());
+
+    if (useNio)
+      factory.useNio();
+
+    factory.setNioParams(nioParams);
 
     hosts = options.hosts;
     addresses = options.addresses;
