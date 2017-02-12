@@ -46,6 +46,9 @@ public class ConnectionOptions {
   }
 
   private ConnectionOptions(ConnectionOptions options) {
+    nioParams = options.nioParams;
+    useNio = options.useNio;
+
     factory = new ConnectionFactory();
     factory.setAutomaticRecoveryEnabled(options.factory.isAutomaticRecoveryEnabled());
     factory.setClientProperties(options.factory.getClientProperties());
@@ -71,7 +74,7 @@ public class ConnectionOptions {
     addresses = options.addresses;
     name = options.name;
     executor = options.executor;
-    nioParams = options.nioParams;
+
   }
 
   /**
