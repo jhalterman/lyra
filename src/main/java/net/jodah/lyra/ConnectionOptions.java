@@ -11,6 +11,7 @@ import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
+import com.rabbitmq.client.impl.nio.NioParams;
 import net.jodah.lyra.internal.util.Assert;
 import net.jodah.lyra.util.Duration;
 
@@ -28,6 +29,8 @@ public class ConnectionOptions {
   private Address[] addresses;
   private String name;
   private ExecutorService executor;
+  private NioParams nioParams;
+  private Boolean useNio = false;
 
   public ConnectionOptions() {
     factory = new ConnectionFactory();
@@ -43,6 +46,9 @@ public class ConnectionOptions {
   }
 
   private ConnectionOptions(ConnectionOptions options) {
+    nioParams = options.nioParams;
+    useNio = options.useNio;
+
     factory = new ConnectionFactory();
     factory.setAutomaticRecoveryEnabled(options.factory.isAutomaticRecoveryEnabled());
     factory.setClientProperties(options.factory.getClientProperties());
@@ -58,10 +64,19 @@ public class ConnectionOptions {
     factory.setSaslConfig(options.factory.getSaslConfig());
     factory.setSocketFactory(options.factory.getSocketFactory());
     factory.setThreadFactory(options.factory.getThreadFactory());
+    factory.setMetricsCollector(options.factory.getMetricsCollector());
+
+    if (useNio)
+      factory.useNio();
+
+    factory.setNioParams(nioParams);
+
     hosts = options.hosts;
     addresses = options.addresses;
     name = options.name;
     executor = options.executor;
+    nioParams = options.nioParams;
+    useNio = options.useNio;
   }
 
   /**
@@ -113,6 +128,15 @@ public class ConnectionOptions {
 
   public String getName() {
     return name;
+  }
+
+  /**
+   * Return NioParams object.
+   * @see #withNioParams(NioParams)
+   * @see #withNio()
+   */
+  public NioParams getNioParams() {
+    return nioParams;
   }
 
   /**
@@ -333,5 +357,26 @@ public class ConnectionOptions {
   {
      factory.setUri(Assert.notNull(uriString, "uriString"));
      return this;
+  }
+
+  /**
+   * Support for Java non-blocking IO
+   */
+  public ConnectionOptions withNio() {
+    this.useNio = true;
+    factory.useNio();
+    return this;
+  }
+
+  /**
+   * Support for Java non-blocking IO
+   *
+   * @param nioParams The NIO mode can be configured through the NioParams class
+   */
+  public ConnectionOptions withNioParams(NioParams nioParams) {
+    this.nioParams = nioParams;
+    factory.setNioParams(Assert.notNull(nioParams, "nioParams"));
+    factory.useNio();
+    return this;
   }
 }
