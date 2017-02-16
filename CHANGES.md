@@ -1,3 +1,8 @@
+# 0.5.4
+
+* Upgrade amqp-client dependency to 4.x
+* Add support for NIO
+
 # 0.5.3
 
 * Added OSGi support along with support for explicit `CloassLoader`s.
