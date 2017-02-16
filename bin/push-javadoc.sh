@@ -1,9 +1,17 @@
 #!/bin/sh
 # run from top level dir
-rm -rf docs
-git clone git@github.com:jhalterman/lyra.git docs -b gh-pages
-mvn -Pjavadoc javadoc:javadoc
-cd docs
-git add -A
+
+PROJECT=lyra
+
+mvn javadoc:javadoc -Djv=$apiVersion
+rm -rf target/docs
+git clone git@github.com:jhalterman/$PROJECT.git target/docs -b gh-pages
+cd target/docs
+git rm -rf javadoc
+mkdir -p javadoc
+mv -v ../site/apidocs/* javadoc
+git add -A -f javadoc
 git commit -m "Updated JavaDocs"
-git push origin gh-pages
+git push -fq origin gh-pages > /dev/null
+
+echo "Published JavaDocs"
