@@ -1,6 +1,8 @@
 # Lyra
 [![Build Status](https://travis-ci.org/jhalterman/lyra.svg)](https://travis-ci.org/jhalterman/lyra)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/lyra/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.jodah/lyra) 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/lyra/badge.svg)][maven] 
+[![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
+[![JavaDoc](http://javadoc-badge.appspot.com/net.jodah/lyra.svg?label=javadoc)](https://jhalterman.github.com/lyra/javadoc)
 
 *High availability RabbitMQ client*
 
@@ -172,3 +174,4 @@ Copyright 2013-2014 Jonathan Halterman - Released under the [Apache 2.0 license]
 [exchange-deletion]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html#exchangeDelete(java.lang.String)
 [queue-deletion]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Channel.html#queueDelete(java.lang.String)
 [kithara]: https://github.com/xsc/kithara
+[maven]: https://maven-badges.herokuapp.com/maven-central/net.jodah/lyra
