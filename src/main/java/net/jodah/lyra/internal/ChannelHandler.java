@@ -425,11 +425,13 @@ public class ChannelHandler extends RetryableResource implements InvocationHandl
           }
 
           // Recover consumer
-          log.info(queueName == "" ? "Recovering consumer-{}{} via {}"
+          log.info("".equals(queueName) ? "Recovering consumer-{}{} via {}"
             : "Recovering consumer-{} of {} via {}", entry.getKey(), queueName, this);
           notifyConsumerRecoveryStarted(consumer);
           consumer.open();
           consumerDeclaration.invoke(delegate);
+          log.info("".equals(queueName) ? "Recovered consumer-{}{} via {}"
+                  : "Recovered consumer-{} of {} via {}", entry.getKey(), queueName, this);
           notifyConsumerRecoveryCompleted(consumer);
         } catch (Exception e) {
           log.error("Failed to recover consumer-{} via {}", entry.getKey(), this, e);
