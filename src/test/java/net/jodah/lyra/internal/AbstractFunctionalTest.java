@@ -1,8 +1,6 @@
 package net.jodah.lyra.internal;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -113,7 +111,7 @@ public abstract class AbstractFunctionalTest {
       mockConnectionOnly();
       connectionFactory = mock(ConnectionFactory.class);
       when(connectionFactory.getVirtualHost()).thenReturn("/");
-      when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class)))
+      when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class), anyString()))
           .thenReturn(connection);
     }
 
@@ -239,7 +237,7 @@ public abstract class AbstractFunctionalTest {
 
   void verifyCxnCreations(int expectedCreations) throws IOException, TimeoutException {
     verify(connectionFactory, times(expectedCreations)).newConnection(any(ExecutorService.class),
-        any(Address[].class));
+        any(Address[].class), anyString());
   }
 
   void verifyRecoveryChannelCreations(int expectedCreations) throws IOException {

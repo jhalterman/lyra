@@ -1,6 +1,7 @@
 package net.jodah.lyra.internal;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.fail;
@@ -11,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import net.jodah.lyra.config.Config;
 import net.jodah.lyra.config.RetryPolicies;
 
+import org.hamcrest.core.IsAnything;
 import org.testng.annotations.Test;
 
 import com.rabbitmq.client.Address;
@@ -30,7 +32,7 @@ public class ConnectionFactoryInvocationTest extends AbstractFunctionalTest {
   public void shouldHandleRetryableConnectFailure() throws Throwable {
     mockConnectionOnly();
     connectionFactory = mock(ConnectionFactory.class);
-    when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(
+    when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class), anyString())).thenAnswer(
         failNTimes(3, new ConnectException("fail"), connection, connectionHandler));
     mockConnection();
     verifyCxnCreations(4);
@@ -42,7 +44,7 @@ public class ConnectionFactoryInvocationTest extends AbstractFunctionalTest {
   public void shouldHandleNonRetryableConnectFailure() throws Throwable {
     connectionFactory = mock(ConnectionFactory.class);
     connection = mock(Connection.class);
-    when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(
+    when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class), anyString())).thenAnswer(
         failNTimes(3, new RuntimeException(), connection, connectionHandler));
 
     try {
@@ -61,7 +63,7 @@ public class ConnectionFactoryInvocationTest extends AbstractFunctionalTest {
     config = new Config().withRetryPolicy(RetryPolicies.retryNever());
     connectionFactory = mock(ConnectionFactory.class);
     connection = mock(Connection.class);
-    when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class))).thenAnswer(
+    when(connectionFactory.newConnection(any(ExecutorService.class), any(Address[].class), anyString())).thenAnswer(
         failNTimes(3, new ConnectException("fail"), connection, connectionHandler));
 
     try {
