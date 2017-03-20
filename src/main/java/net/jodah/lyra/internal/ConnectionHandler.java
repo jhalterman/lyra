@@ -240,7 +240,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
               options.getAddresses());
           ConnectionFactory cxnFactory = options.getConnectionFactory();
           Connection connection =
-              cxnFactory.newConnection(consumerThreadPool, options.getAddresses());
+              cxnFactory.newConnection(consumerThreadPool, options.getAddresses(), connectionName);
           final String amqpAddress =
               String.format("%s://%s:%s/%s", cxnFactory.isSSL() ? "amqps" : "amqp",
                   connection.getAddress().getHostAddress(), connection.getPort(),
