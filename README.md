@@ -48,7 +48,7 @@ channel2.basicConsume("bar-queue", consumer4);
 
 This results in the resource topology:
 
-<img src="https://raw.github.com/jhalterman/lyra/gh-pages/assets/img/rabbit-graph.png"\>
+<img src="https://raw.github.com/jhalterman/lyra/gh-pages/assets/img/rabbit-graph.png"/>
 
 If a connection or channel is unexpectedly closed, Lyra will attempt to recover it along with its dependents according to the recovery policy. In addition, any non-durable or auto-deleting exchanges and queues, along with their bindings, will be recovered unless they are [explicitly][exchange-deletion] [deleted][queue-deletion].
 
@@ -147,7 +147,7 @@ Thanks to Brett Cameron, Michael Klishin and Matthias Radestock for their valuab
 
 ## License
 
-Copyright 2013-2014 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+Copyright 2013-2017 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 [java-client]: http://www.rabbitmq.com/java-client.html
 [Connection]: http://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/com/rabbitmq/client/Connection.html
