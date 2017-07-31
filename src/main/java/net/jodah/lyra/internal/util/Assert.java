@@ -7,6 +7,14 @@ public final class Assert {
   private Assert() {
   }
 
+  public static void isFalse(boolean expression) {
+    isTrue(!expression);
+  }
+
+  public static void isFalse(boolean expression, String errorMessageFormat, Object... args) {
+    isTrue(!expression, errorMessageFormat, args);
+  }
+
   public static void isTrue(boolean expression) {
     if (!expression)
       throw new IllegalArgumentException();

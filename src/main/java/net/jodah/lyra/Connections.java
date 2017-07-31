@@ -109,7 +109,7 @@ public final class Connections {
       throws IOException, TimeoutException {
     Assert.notNull(options, "options");
     Assert.notNull(config, "config");
-    Assert.isTrue(!options.getConnectionFactory().isAutomaticRecoveryEnabled(),
+    Assert.isFalse(options.getConnectionFactory().isAutomaticRecoveryEnabled(),
             "RabbitMQ Automatic Recovery cannot be enabled");
     Assert.notNull(classLoader, CLASS_LOADER_PARAMETER_NAME);
     ConnectionHandler handler = new ConnectionHandler(options.copy(), new Config(config), classLoader);
