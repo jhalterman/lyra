@@ -34,6 +34,7 @@ public class ConnectionOptions {
 
   public ConnectionOptions() {
     factory = new ConnectionFactory();
+    factory.setAutomaticRecoveryEnabled(false);
   }
 
   /**
