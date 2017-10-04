@@ -33,7 +33,7 @@ public class ConnectionOptions {
   private Boolean useNio = false;
 
   public ConnectionOptions() {
-    factory = new ConnectionFactory();
+    factory = makeConnectionFactory();
   }
 
   /**
@@ -49,7 +49,7 @@ public class ConnectionOptions {
     nioParams = options.nioParams;
     useNio = options.useNio;
 
-    factory = new ConnectionFactory();
+    factory = makeConnectionFactory();
     factory.setAutomaticRecoveryEnabled(options.factory.isAutomaticRecoveryEnabled());
     factory.setClientProperties(options.factory.getClientProperties());
     factory.setConnectionTimeout(options.factory.getConnectionTimeout());
@@ -84,6 +84,19 @@ public class ConnectionOptions {
    */
   public ConnectionOptions copy() {
     return new ConnectionOptions(this);
+  }
+
+  /**
+   * Returns a rabbitmq-java connection factory instance with automatic recovery turned off by default.
+   * This is necessary as rabbitmq-java > 4.0.0 enables it by default, resulting in two restored consumer in case of
+   * connection resets.
+   *
+   * @return a com.rabbitmq.client.ConnectionFactory with automatic recovery disabled
+   */
+  private ConnectionFactory makeConnectionFactory() {
+    ConnectionFactory factory = new ConnectionFactory();
+    factory.setAutomaticRecoveryEnabled(false);
+    return factory;
   }
 
   /**
