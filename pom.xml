@@ -118,7 +118,7 @@
         </executions>
         <configuration>
           <author>false</author>
-          <protected>true</protected>
+          <show>protected</show>
           <excludePackageNames>*.internal</excludePackageNames>
           <additionalparam>
             -Xdoclint:none
