@@ -91,6 +91,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.7.0</version>
         <configuration>
           <source>1.6</source>
           <target>1.6</target>
@@ -140,7 +141,7 @@
               com.rabbitmq.client.*,
               org.slf4j.*
             </Import-Package>
-            <Bundle-SymbolicName>${artifactId}</Bundle-SymbolicName>
+            <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
           </instructions>
         </configuration>
       </plugin>
