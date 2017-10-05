@@ -47,6 +47,7 @@ public class Config implements ConnectionConfig {
   private Collection<ConsumerListener> consumerListeners;
   private Set<Class<? extends Exception>> retryableExceptions;
   private Set<Class<? extends Exception>> recoverableExceptions;
+  private Boolean useDaemonThreads;
 
   public Config() {
     parent = null;
@@ -183,6 +184,12 @@ public class Config implements ConnectionConfig {
   }
 
   @Override
+  public boolean isUsingDaemonThreads() {
+    Boolean result = useDaemonThreads != null ? useDaemonThreads : parent != null ? parent.isUsingDaemonThreads() : false;
+    return result;
+  }
+
+  @Override
   public Config withChannelListeners(ChannelListener... channelListeners) {
     this.channelListeners = Arrays.asList(channelListeners);
     return this;
@@ -249,6 +256,12 @@ public class Config implements ConnectionConfig {
   @Override
   public Config withQueueRecovery(boolean enabled) {
     queueRecovery = Boolean.valueOf(enabled);
+    return this;
+  }
+
+  @Override
+  public Config withUseDaemonThreads(boolean enabled) {
+    useDaemonThreads = enabled;
     return this;
   }
 
