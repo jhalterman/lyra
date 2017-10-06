@@ -50,7 +50,6 @@ public class ConnectionOptions {
     useNio = options.useNio;
 
     factory = makeConnectionFactory();
-    factory.setAutomaticRecoveryEnabled(options.factory.isAutomaticRecoveryEnabled());
     factory.setClientProperties(options.factory.getClientProperties());
     factory.setConnectionTimeout(options.factory.getConnectionTimeout());
     factory.setHost(options.factory.getHost());
