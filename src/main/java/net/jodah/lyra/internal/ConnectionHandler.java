@@ -40,7 +40,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
   private static final Class<?>[] CHANNEL_TYPES = {ConfigurableChannel.class};
   private static final AtomicInteger CONNECTION_COUNTER = new AtomicInteger();
   static final ExecutorService RECOVERY_EXECUTORS =
-      Executors.newCachedThreadPool(new NamedThreadFactory("lyra-recovery-%s"));
+      Executors.newCachedThreadPool(new NamedThreadFactory("lyra-recovery-%s", true));
   static final int RECOVERY_CHANNEL_NUM = 100;
 
   final Map<String, ResourceDeclaration> exchangeDeclarations = Collections.synchronizedLinkedMap();
@@ -75,7 +75,7 @@ public class ConnectionHandler extends RetryableResource implements InvocationHa
             : options.getName();
     consumerThreadPool =
         options.getConsumerExecutor() == null ? Executors.newCachedThreadPool(new NamedThreadFactory(
-            String.format("rabbitmq-%s-consumer", connectionName))) : options.getConsumerExecutor();
+            String.format("rabbitmq-%s-consumer", connectionName), config.isUsingDaemonThreads())) : options.getConsumerExecutor();
   }
 
   /**

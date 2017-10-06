@@ -34,6 +34,11 @@ public interface ConnectionConfig extends ChannelConfig {
   RetryPolicy getConnectionRetryPolicy();
 
   /**
+   * Whether or not using daemon threads.
+   */
+  boolean isUsingDaemonThreads();
+
+  /**
    * Sets the {@code connectionListeners} to call on connection related events.
    */
   ConnectionConfig withConnectionListeners(ConnectionListener... connectionListeners);
@@ -47,4 +52,9 @@ public interface ConnectionConfig extends ChannelConfig {
    * Sets the policy to use for handling {@link Connection} invocation errors.
    */
   ConnectionConfig withConnectionRetryPolicy(RetryPolicy retryPolicy);
+
+  /**
+   * Whether or not using daemon threads. Default is false.
+   */
+  ConnectionConfig withUseDaemonThreads(boolean useDaemonThreads);
 }
