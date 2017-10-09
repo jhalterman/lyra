@@ -43,6 +43,7 @@ public class ConnectionOptions {
    */
   public ConnectionOptions(ConnectionFactory connectionFactory) {
     this.factory = Assert.notNull(connectionFactory, "connectionFactory");
+    Assert.isTrue(!connectionFactory.isAutomaticRecoveryEnabled(), "Automatic recovery in the connection factory must be set to false");
   }
 
   private ConnectionOptions(ConnectionOptions options) {
