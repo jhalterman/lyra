@@ -1,3 +1,8 @@
+# 0.5.5
+
+* Use a connection factory with automatic recovery disabled by default
+* Add useDaemonThreads option to allow JVM to shutdown
+
 # 0.5.4
 
 * Upgrade amqp-client dependency to 4.x
