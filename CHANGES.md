@@ -1,5 +1,6 @@
 # 0.5.5
 
+* Pass in connection name to underlying AMQP connection
 * Use a connection factory with automatic recovery disabled by default
 * Add useDaemonThreads option to allow JVM to shutdown
 
