@@ -31,6 +31,9 @@
   </developers>
 
   <properties>
+    <!-- to sign artifacts when releasing -->
+    <gpg.keyname>6026DFCA</gpg.keyname>
+
     <logback.version>1.0.13</logback.version>
   </properties>
 
