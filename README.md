@@ -18,6 +18,8 @@ Lyra was created with the simple goal of recovering client created AMQP resource
 
 Add the latest [Lyra](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22net.jodah%22%20a%3A%22lyra%22) and [amqp-client] dependencies to your project.
 
+> Please note that Lyra and RabbitMQ Java client's recovery feature are **mutually exclusive** and **must not be used together**.
+
 ## Usage
 
 #### Automatic Resource Recovery
