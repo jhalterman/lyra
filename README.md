@@ -8,7 +8,19 @@
 
 ## Introduction
 
-Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources when [unexpected failures][failure-scenarios] occur. Lyra also supports automatic invocation retries, recovery related eventing, and exposes a simple, lightweight API built around the [Java AMQP client][java-client] library.
+Dealing with failure is a fact of life in distributed systems. Lyra is a [RabbitMQ](http://www.rabbitmq.com/) client that embraces failure, helping you achieve high availability in your services by automatically recovering AMQP resources when [unexpected failures][failure-scenarios] occur. Lyra also supports automatic invocation retries, recovery related eventing, and exposes a simple, lightweight API built around the [RabbitMQ Java client][java-client] library.
+
+Please note that Lyra and RabbitMQ Java client's recovery feature are **mutually exclusive** and **must not be used together**.
+Note that RabbitMQ Java client 4.0 and later versions have automatic connection recovery enabled by default.
+
+
+## Project Status
+
+Lyra is **no longer under active development**. Some of its features are being considered for
+the official Java client. Lyra will be **eventually deprecated**.
+
+Consider using [RabbitMQ Java client][java-client] over Lyra.
+
 
 ## Motivation
 
@@ -18,11 +30,12 @@ Lyra was created with the simple goal of recovering client created AMQP resource
 
 Add the latest [Lyra](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22net.jodah%22%20a%3A%22lyra%22) and [amqp-client] dependencies to your project.
 
-> Please note that Lyra and RabbitMQ Java client's recovery feature are **mutually exclusive** and **must not be used together**.
-
 ## Usage
 
 #### Automatic Resource Recovery
+
+> Please note that Lyra and RabbitMQ Java client's recovery feature are **mutually exclusive** and **must not be used together**.
+> Note that RabbitMQ Java client 4.0 and later versions have automatic connection recovery enabled by default.
 
 The key feature of Lyra is its ability to *automatically* recover resources such as [connections][Connection], [channels][Channel], [consumers][Consumer], exchanges, queues and bindings when [unexpected failures][failure-scenarios] occur. Lyra provides a flexible [policy][recovery-policy] to define how recovery should be performed.
 
