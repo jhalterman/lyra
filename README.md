@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/jhalterman/lyra.svg)](https://travis-ci.org/jhalterman/lyra)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/lyra/badge.svg)][maven] 
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
-[![JavaDoc](http://javadoc-badge.appspot.com/net.jodah/lyra.svg?label=javadoc)](https://jhalterman.github.com/lyra/javadoc)
+[![JavaDoc](http://javadoc-badge.appspot.com/net.jodah/lyra.svg?label=javadoc)](https://jodah.net/lyra/javadoc)
 
 *High availability RabbitMQ client*
 
@@ -151,7 +151,7 @@ Logging is provided via the [slf4j](http://www.slf4j.org/) [API](http://www.slf4
 
 ## Additional Resources
 
-* JavaDocs are available [here](https://jhalterman.github.com/lyra/javadoc).
+* JavaDocs are available [here](https://jodah.net/lyra/javadoc).
 * The various failure scenarios handled by Lyra are described [here][failure-scenarios].
 * See the [Lyra cookbook][cookbook] for handling specific RabbitMQ use cases.
 * A [Clojure][kithara] wrapper for Lyra is available.
