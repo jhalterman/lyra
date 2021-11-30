@@ -1,0 +1,26 @@
+-classpath
+'/Users/jonathan/dev/lyra/target/classes:/Users/jonathan/.m2/repository/com/rabbitmq/amqp-client/4.0.2/amqp-client-4.0.2.jar:/Users/jonathan/.m2/repository/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar'
+-encoding
+'UTF-8'
+-protected
+-sourcepath
+'/Users/jonathan/dev/lyra/src/main/java'
+-Xdoclint:none
+            -notimestamp
+            -link https://www.rabbitmq.com/releases/rabbitmq-java-client/current-javadoc/
+-bottom
+'Copyright &#169; 2021. All rights reserved.'
+-charset
+'UTF-8'
+-d
+'/Users/jonathan/dev/lyra/target/site/apidocs'
+-docencoding
+'UTF-8'
+-doctitle
+'Lyra 0.5.6-SNAPSHOT API'
+-linkoffline
+'http://docs.oracle.com/javase/6/docs/api' '/Users/jonathan/dev/lyra/target/javadoc-bundle-options'
+-use
+-version
+-windowtitle
+'Lyra 0.5.6-SNAPSHOT API'
