@@ -1,3 +1,9 @@
+## Project Status
+
+Lyra is **deprecated**: it is no longer maintained, it will not have new releases, new bugs will not be fixed.
+
+Consider using [RabbitMQ Java client][java-client] over Lyra.
+
 # Lyra
 [![Build Status](https://travis-ci.org/jhalterman/lyra.svg)](https://travis-ci.org/jhalterman/lyra)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/lyra/badge.svg)][maven] 
@@ -12,15 +18,6 @@ Dealing with failure is a fact of life in distributed systems. Lyra is a [Rabbit
 
 Please note that Lyra and RabbitMQ Java client's recovery feature are **mutually exclusive** and **must not be used together**.
 Note that RabbitMQ Java client 4.0 and later versions have automatic connection recovery enabled by default.
-
-
-## Project Status
-
-Lyra is **no longer under active development**. Some of its features are being considered for
-the official Java client. Lyra will be **eventually deprecated**.
-
-Consider using [RabbitMQ Java client][java-client] over Lyra.
-
 
 ## Motivation
 
