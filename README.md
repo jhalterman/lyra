@@ -5,10 +5,11 @@ Lyra is **deprecated**: it is no longer maintained, it will not have new release
 Consider using [RabbitMQ Java client][java-client] over Lyra.
 
 # Lyra
-[![Build Status](https://travis-ci.org/jhalterman/lyra.svg)](https://travis-ci.org/jhalterman/lyra)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/lyra/badge.svg)][maven] 
+
+[![Build Status](https://github.com/jhalterman/lyra/workflows/build/badge.svg)](https://github.com/jhalterman/lyra/actions)
+[![Maven Central](https://img.shields.io/maven-central/v/net.jodah/lyra.svg?maxAge=60&colorB=53C92E)](https://maven-badges.herokuapp.com/maven-central/net.jodah/lyra)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
-[![JavaDoc](http://javadoc-badge.appspot.com/net.jodah/lyra.svg?label=javadoc)](https://jodah.net/lyra/javadoc)
+[![JavaDoc](https://img.shields.io/maven-central/v/net.jodah/lyra.svg?maxAge=60&label=javadoc&color=blue)](https://jodah.net/lyra/javadoc/)
 
 *High availability RabbitMQ client*
 
